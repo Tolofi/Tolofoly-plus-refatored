@@ -1,0 +1,778 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
+
+:root {
+  /* --- CORES --- */
+  --bg-app: #f0f2f5;
+  --bg-card: #ffffff;
+  --primary: #820ad1; /* Roxo Nubank */
+  --primary-hover: #6a08a8;
+  --secondary: #03d37b; /* Verde Sucesso/Online */
+  --text-main: #111827;
+  --text-muted: #6b7280;
+  --text-label: #9ca3af;
+
+  /* --- PADRONIZAÇÃO DE TAMANHO --- */
+  --card-width: 350px;
+  --border-radius: 20px;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+/* 1. RESET E LAYOUT GERAL */
+body {
+  background-color: var(--bg-app);
+  font-family: "Manrope", sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+button:focus {
+  outline: none;
+}
+
+/* =========================================
+   2. TELA DE LOGIN & LOBBY (O que estava faltando)
+   ========================================= */
+
+.login-container,
+.wait-container {
+  background-color: var(--bg-card);
+  /* width: 90%; */
+  max-width: 380px;
+  padding: 40px;
+  border-radius: 32px;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
+  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.wait-container {
+  width: 90%;
+}
+
+/* Títulos */
+.title-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 35px;
+  text-align: center;
+  width: 100%;
+  margin-top: 0;
+}
+
+.login-game-title {
+  color: var(--primary);
+  font-weight: 800;
+  font-size: 2.2rem;
+  letter-spacing: -1px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.login-game-description {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+/* Inputs e Labels */
+.input-group {
+  width: 100%;
+  margin-bottom: 24px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- A CLASSE QUE VOCÊ PEDIU --- */
+.username-input-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  margin-left: 4px;
+}
+
+.username-input {
+  width: 100%;
+  background-color: var(--bg-app);
+  border: none;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 1rem;
+  color: var(--text-main);
+  outline: none;
+  font-family: inherit;
+  transition: box-shadow 0.2s;
+}
+
+.username-input:focus {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+/* Botões de Entrada / Estado */
+.btn-enter,
+.prepareStateButton {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 16px;
+  width: 100%;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btn-enter:hover {
+  background-color: var(--primary-hover);
+}
+
+.pronto {
+  background-color: var(--secondary);
+}
+.preparando {
+  background-color: #a32020;
+}
+
+/* Status de Conexão */
+.connection-row {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.connection-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f3f4f6;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.status-dot.offline {
+  background-color: #9ca3af;
+}
+.status-dot.online {
+  background-color: var(--secondary);
+}
+
+/* Perfil Circular no Lobby */
+.profileCircle {
+  background-color: #e9d5ff;
+  color: var(--primary);
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 700;
+  font-size: 40px;
+  border: 2px solid rgba(130, 10, 209, 0.1);
+  margin-bottom: 20px;
+}
+
+.wait-label {
+  color: var(--text-label);
+  font-weight: 500;
+}
+
+/* =========================================
+   3. TELA DO JOGO (MAIN CONTAINER)
+   ========================================= */
+.main-container {
+  width: 100vw;
+  min-height: 100vh;
+  padding: 16px;
+  background-color: var(--bg-app);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-x: hidden;
+  margin: 0 auto;
+}
+
+/* =========================================
+   4. TOP BAR (Atualizada e Alinhada)
+   ========================================= */
+.dice-money-row {
+  width: 100%;
+  max-width: var(--card-width);
+  min-height: 60px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  padding: 0 20px;
+  margin: 0 auto;
+
+  font-family: "Manrope", sans-serif;
+  font-weight: 600;
+  color: #1f2937;
+  position: relative;
+  z-index: 50;
+  overflow: hidden;
+}
+
+.topbar-status-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.topbar-notification {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+}
+.status-item.money {
+  color: #059669;
+}
+.status-item.dice {
+  background-color: #f3f4f6;
+  padding: 4px 10px 4px 6px;
+  border-radius: 20px;
+}
+.dice-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: #374151;
+}
+.label {
+  opacity: 0.6;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+.value {
+  font-size: 16px;
+}
+
+/* =========================================
+   5. CARD DE PROPRIEDADE (NU CARD)
+   ========================================= */
+.nu-card {
+  width: 100%;
+  max-width: var(--card-width);
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  font-family: "Manrope", sans-serif;
+  /* border: 1px solid #f0f1f5;} */
+}
+
+.nu-header {
+  padding: 15px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f5;
+}
+
+.nu-tag-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nu-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 1), 0 0 0 4px currentColor;
+}
+.nu-location-text {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  color: #888;
+}
+.nu-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  margin: 5px 0 0 0;
+  letter-spacing: -0.5px;
+}
+
+.nu-rent-list {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nu-rent-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  position: relative;
+  min-height: 48px; /* Fix para não pular tamanho */
+  box-sizing: border-box;
+}
+
+.nu-rent-item .label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nu-rent-item .value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111;
+}
+
+.nu-rent-item.active {
+  background-color: #f5ebfe;
+} /* Fallback se não usar motion */
+.nu-rent-item.active .label,
+.nu-rent-item.active .value {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* =========================================
+   6. BOTÕES
+   ========================================= */
+.buttons-container {
+  width: 100%;
+  max-width: var(--card-width);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  padding: 20px 0; /* Espaço extra */
+  margin: 0 auto;
+}
+
+.buttons-container button {
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  border: none;
+
+  background-color: #1f2937; /* Botão Escuro (igual ao MagicBox) */
+  color: white;
+
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s, background-color 0.2s;
+}
+.buttons-container button:active {
+  transform: scale(0.98);
+}
+
+/* =========================================
+   7. EXTRAS (Overlays e Alertas)
+   ========================================= */
+.transaction-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.alert {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) !important;
+  z-index: 9999;
+  background-color: #ffffff;
+  color: var(--text-muted);
+  padding: 15px 25px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.special-card-content {
+  text-align: center;
+  padding: 10px 0;
+  font-weight: 600;
+}
+
+.SvgSub {
+  text-align: center;
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.special-card-text {
+  color: var(--text-muted);
+}
+
+.tela-propriedade {
+  margin: 0 auto;
+  width: 100%;
+}
+
+.tela-propriedade-sub {
+  display: flex;
+  justify-content: center;
+}
+
+.dice-container {
+  margin: auto;
+}
+
+.down-bar {
+  width: 100%;
+  max-width: var(--card-width);
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  padding: 0 20px;
+  margin: 0 auto;
+  font-family: "Manrope", sans-serif;
+  font-weight: 600;
+  color: #1f2937;
+  left: 0vw;
+  z-index: 50;
+  overflow: hidden;
+  /* position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%); */
+}
+
+.down-bar-buttom {
+  flex: 1;
+  color: #1f2937;
+}
+
+.waiting-turn-div {
+  height: 100%;
+  text-align: center;
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 20px;
+  align-self: center;
+  margin: auto;
+}
+
+.waiting-turn-title {
+  font-weight: 900;
+  color: #1f2937;
+  font-size: 20px;
+}
+
+.waiting-message {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 18px;
+}
+
+/* Container Principal - Estilo Card Flutuante Branco */
+.magic-box-container {
+  position: fixed;
+  bottom: 24px; /* Um pouco mais alto para parecer flutuante */
+  left: 50%;
+  /* Transform controlado pelo Framer Motion (x: -50%) */
+
+  width: 90%;
+  max-width: 400px;
+
+  /* MUDANÇA PRINCIPAL: Fundo Branco e Texto Escuro */
+  background-color: #ffffff;
+  color: #1f2937; /* Cinza bem escuro, quase preto */
+
+  /* Bordas bem arredondadas igual ao TopBar da imagem */
+  border-radius: 24px;
+  padding: 8px 20px 24px 20px; /* Mais espaço embaixo */
+
+  /* Sombra suave e difusa (Soft Shadow) */
+  box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.1),
+    0 10px 15px -5px rgba(0, 0, 0, 0.05);
+
+  /* Borda sutil para separar do fundo caso o fundo do site seja branco também */
+  border: 1px solid rgba(0, 0, 0, 0.05);
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1000;
+}
+
+/* A "Alça" (Handle) */
+.magic-box-handle {
+  width: 100%;
+  height: 32px;
+  background: transparent;
+  border: none;
+
+  /* Cor cinza claro para ser discreto no fundo branco */
+  color: #cbd5e1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.magic-box-handle:hover {
+  color: #64748b; /* Fica mais escuro ao passar o mouse */
+  transform: translateY(2px);
+}
+
+/* Grid de Botões */
+.magic-box-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Botões - Estilo Moderno e Escuro para Contraste */
+.magic-btn {
+  /* Fundo escuro (#1a1a1a) para contrastar com o card branco */
+  background-color: #1f2937;
+  color: #ffffff;
+
+  border: none;
+  border-radius: 16px; /* Combinando com o container */
+  padding: 12px;
+
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 56px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  /* Sombra sutil no botão */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.magic-btn:hover {
+  background-color: #111827; /* Quase preto no hover */
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
+}
+
+.magic-btn:active {
+  transform: translateY(0);
+}
+
+/* Botão Full Width (Dinheiro) */
+.full-width {
+  grid-column: span 2;
+
+  /* Opção: Cor diferente para o botão de dinheiro, ou manter padrão */
+  background-color: #1f2937;
+}
+
+/* Botão Flutuante de Abrir (Estilo Clean UI) */
+.open-magic-box-btn {
+  position: fixed;
+  bottom: 24px; /* Mesma altura base do MagicBox aberto */
+  left: 50%;
+  transform: translateX(-50%); /* Centraliza horizontalmente */
+
+  /* Tamanho e Forma */
+  width: 64px;
+  height: 48px; /* Retangular arredondado (Pill shape) */
+  border-radius: 24px;
+
+  /* Cores e Bordas */
+  background-color: #ffffff;
+  color: #1f2937; /* Cinza escuro */
+  border: 1px solid rgba(0, 0, 0, 0.05);
+
+  /* Sombra Suave */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.05);
+
+  /* Alinhamento do Ícone */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  z-index: 900; /* Fica abaixo do MagicBox aberto (z-1000) */
+  outline: none;
+
+  /* Transição suave para hover */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.open-magic-box-btn:hover {
+  transform: translateX(-50%); /* Sobe um pouquinho */
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15),
+    0 10px 10px -5px rgba(0, 0, 0, 0.08);
+  color: #000;
+}
+
+.open-magic-box-btn:active {
+  transform: translateX(-50%) translateY(0); /* Efeito de clique */
+}
+
+/* Fundo escuro atrás do modal (Backdrop) */
+.magic-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4); /* Escurece o fundo */
+  backdrop-filter: blur(4px); /* Desfoque moderno */
+  z-index: 1900; /* Fica abaixo do modal, mas acima de tudo */
+}
+
+/* Container do Modal (O Card) */
+.magic-modal-container {
+  position: fixed;
+  top: 50%; /* Centralizado verticalmente */
+  left: 50%; /* Centralizado horizontalmente */
+  /* O transform x: -50% e y: -50% é controlado pelo Framer Motion */
+
+  width: 90%;
+  max-width: 320px; /* Largura compacta */
+
+  background-color: #ffffff;
+  border-radius: 24px; /* Bordas bem arredondadas */
+  padding: 24px;
+
+  /* Sombra suave e profunda para destacar */
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 2000; /* Fica acima de tudo */
+  text-align: center;
+}
+
+/* Título */
+.magic-modal-title {
+  margin: 0;
+  font-size: 18px;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.magic-modal-input {
+  width: 100%;
+  background-color: var(--bg-app);
+  border: none;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 1rem;
+  color: var(--text-main);
+  outline: none;
+  font-family: inherit;
+  transition: box-shadow 0.2s;
+  /* width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb; 
+  background-color: #f9fafb; 
+  font-size: 16px;
+  outline: none;
+  transition: all 0.2s;
+  color: #1f2937;
+  box-sizing: border-box; */
+}
+
+.magic-modal-input:focus {
+  border-color: #1f2937; /* Borda escura ao focar */
+  background-color: #fff;
+  box-shadow: 0 0 0 2px rgba(31, 41, 55, 0.1);
+}
+
+/* Botão de Confirmação */
+.magic-modal-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  border: none;
+
+  background-color: #1f2937; /* Botão Escuro (igual ao MagicBox) */
+  color: white;
+
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s, background-color 0.2s;
+}
+
+.magic-modal-btn:hover {
+  background-color: #111827;
+  transform: scale(1.02);
+}
+
+.magic-modal-btn:active {
+  transform: scale(0.98);
+}
