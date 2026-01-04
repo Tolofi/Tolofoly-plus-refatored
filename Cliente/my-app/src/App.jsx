@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { Login } from "./pages/Login";
 import { Wait } from "./pages/Wait";
-import "./main.css";
+import "./Main.css";
 import { MainPage } from "./pages/MainPage";
 import { socket } from "../socket";
 import { useEffect } from "react";
