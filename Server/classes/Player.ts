@@ -29,7 +29,11 @@ export class Player {
   }
 
   mover(quantidade: number) {
-    this.posicao = (this.posicao + quantidade) % 40; // Supondo um tabuleiro com 40 posições
+    const TOTAL = 40;
+    this.posicao = (((this.posicao + quantidade) % TOTAL) + TOTAL) % TOTAL;
+  }
+  setPreso(a: boolean) {
+    this.preso = a;
   }
   adicionarPropriedade(id: number, propriedade: any) {
     this.propriedades.set(id, propriedade);
@@ -86,6 +90,10 @@ export class Player {
 
   getPropriedadesNomes(): string[] {
     return Array.from(this.propriedades.values());
+  }
+
+  getPreso(): boolean {
+    return this.preso;
   }
 
   toDTO(): PlayerDTO {

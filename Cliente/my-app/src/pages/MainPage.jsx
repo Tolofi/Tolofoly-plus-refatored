@@ -10,7 +10,7 @@ import { TopBar } from "../components/TopBar";
 import { RolarDados } from "../components/RolarDados";
 import { TransactionMachine } from "../components/PaymentSuccessAnimation";
 import { DownBar } from "../components/DownBar";
-import { frasesDeEspera } from "../FrasesEsperaCartasSorte";
+import { frasesDeEspera, frasesPrisao } from "../FrasesEsperaCartasSorte";
 import { MagicBoxModal } from "../components/MagicBoxModal";
 import { MagicBox } from "../components/MagicBox";
 import { TransferModal } from "../components/TransferModal";
@@ -64,6 +64,8 @@ export const MainPage = () => {
   const history = useGameStore((state) => state.history);
   const waitingMessage = frasesDeEspera;
   const waitingMessageIndex = Math.floor(Math.random() * frasesDeEspera.length);
+  const prisonMessage = frasesPrisao;
+  const prisonMessageIndex = Math.floor(Math.random() * frasesPrisao.length);
   const availablePlayers = allPlayersList.filter((name) => name !== username);
 
   // --- FUNÇÕES ---
@@ -204,6 +206,19 @@ export const MainPage = () => {
       }
     }
 
+    function onJailled(data) {
+      const msg = data?.message || "Você continua preso.";
+      onNotification(msg);
+      console.log("Você esta preso.")
+      // 1. NÃO mude para 'DECIDING'. Isso evitará que os botões apareçam.
+      // Mantenha o estado atual ou mude para algo bloqueado se tiver.
+
+      // 2. Aguarda 3 segundos para o jogador ler a mensagem e ver o dado
+      setTimeout(() => {
+        finishTurn(); // Encerra o turno automaticamente
+      }, 3000);
+    }
+
     function onRegisterFail() {
       setIsRegisterFail(true);
       localStorage.removeItem("monopoly_username");
@@ -307,7 +322,7 @@ export const MainPage = () => {
         setPaymentAnimation({
           name: data.msgDe[0],
           price: data.msgDe[1],
-          type: "purchase",
+          type: "transfer",
         });
       }
     }
@@ -382,7 +397,7 @@ export const MainPage = () => {
     socket.on("currentRoundData", onCurrentRoundData);
     socket.on("turn_update", onTurnUpdate);
     socket.on("playerTrasactionResult", onPlayerTrasactionResult);
-    socket.on("Jailled", onGenericUnlock);
+    socket.on("Jailled", onJailled);
     socket.on("propertyTransactionResult", onGenericUnlock);
 
     return () => {
@@ -408,7 +423,7 @@ export const MainPage = () => {
       socket.off("turn_update", onTurnUpdate);
       socket.off("aiMessage", onAiMessage);
       socket.off("playerTrasactionResult", onPlayerTrasactionResult);
-      socket.off("Jailled", onGenericUnlock);
+      socket.off("Jailled", onJailled);
       socket.off("propertyTransactionResult", onGenericUnlock);
     };
   }, []);
@@ -477,7 +492,7 @@ export const MainPage = () => {
             style: "currency",
             currency: "BRL",
           })}
-          type="purchase"
+          type={paymentAnimation.type}
           isBank={false}
           onComplete={() => setPaymentAnimation(null)}
         />
@@ -490,7 +505,7 @@ export const MainPage = () => {
             style: "currency",
             currency: "BRL",
           })}
-          type="transfer"
+          type="transfer" // banco SEMPRE é transferência
           isBank={true}
           onComplete={() => setBankAnimation(null)}
         />
@@ -597,9 +612,19 @@ export const MainPage = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <div className="waiting-turn-title">Aguardando sua vez...</div>
+              <div className="waiting-turn-title">
+                {/* Muda o título se estiver preso */}
+                {playerObject.preso
+                  ? "🔒 Você está Detido"
+                  : "Aguardando sua vez..."}
+              </div>
+
               <div className="waiting-message">
-                {waitingMessage[waitingMessageIndex]}
+                {/* Se NÃO estiver preso, mostra frases aleatórias */}
+                {!playerObject.preso && waitingMessage[waitingMessageIndex]}
+
+                {/* Se ESTIVER preso, mostra mensagem fixa */}
+                {playerObject.preso && prisonMessage[prisonMessageIndex]}
               </div>
             </motion.div>
           )}

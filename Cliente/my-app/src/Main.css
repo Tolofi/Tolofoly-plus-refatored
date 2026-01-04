@@ -713,6 +713,7 @@ button:focus {
   gap: 16px;
   z-index: 2000; /* Fica acima de tudo */
   text-align: center;
+  overflow-x: hidden;
 }
 
 /* Título */
@@ -775,4 +776,8 @@ button:focus {
 
 .magic-modal-btn:active {
   transform: scale(0.98);
+}
+
+.pml::-webkit-scrollbar {
+  display: none;
 }

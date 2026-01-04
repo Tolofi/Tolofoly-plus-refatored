@@ -61,7 +61,7 @@ export const PropertiesModal = ({ close, allPlayers, onSell }) => {
           style={{
             padding: "20px 20px 10px 20px",
             background: "white",
-            borderRadius: "20px 20px 0 0",
+            borderRadius: "20px",
             boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
             zIndex: 10,
           }}
@@ -126,7 +126,7 @@ export const PropertiesModal = ({ close, allPlayers, onSell }) => {
         </div>
 
         {/* LISTA */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px"}} className="pml">
           {filteredProperties.length === 0 ? (
             <div
               style={{

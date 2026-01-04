@@ -273,7 +273,27 @@ export class SocketAdmin {
           `🚶 Você andou ${qtd} casas (Manual).`
         );
 
-        if (posicaoAntiga > info.getPosicao()) {
+        if (
+          Memory.getPropriedadeById(info.getPosicao())?.getColor === "Prisao"
+        ) {
+          info.setPreso(true);
+
+          socket.emit("notification", "🚨 VOCÊ FOI PRESO! 🚨");
+          socket.emit("Jailled");
+        }
+
+        if (posicaoAntiga > info.getPosicao() && qtd >= 0) {
+          const pontoPartidaRes = Banco.pontoPartida(info.getUsername());
+          socket.emit("begginingPoint", pontoPartidaRes);
+          if (pontoPartidaRes.status) {
+            this.emitPersonalHistory(
+              info.username,
+              `🔄 Bônus de volta: +R$ 2000.`
+            );
+          }
+        }
+
+        if (posicaoAntiga < info.getPosicao() && qtd < 0) {
           const pontoPartidaRes = Banco.pontoPartida(info.getUsername());
           socket.emit("begginingPoint", pontoPartidaRes);
           if (pontoPartidaRes.status) {
@@ -326,6 +346,14 @@ export class SocketAdmin {
 
           const posicaoAntiga = player.getPosicao();
           Banco.moverJogador(info.username, dadoAtual);
+          if (
+            Memory.getPropriedadeById(info.getPosicao())?.getColor === "Prisao"
+          ) {
+            info.setPreso(true);
+
+            socket.emit("notification", "🚨 VOCÊ FOI PRESO! 🚨");
+            socket.emit("Jailled");
+          }
 
           this.emitPersonalHistory(
             info.username,

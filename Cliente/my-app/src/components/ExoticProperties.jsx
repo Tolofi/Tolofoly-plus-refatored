@@ -7,6 +7,8 @@ const isStart = propriedade.color === "Comeco";
   const isPark = propriedade.color === "Estacionamento";
   const isLucky = propriedade.color === "Sorte";
   const isTax = propriedade.color === "Taxa";
+
+  
   return (
     <motion.div
       // A KEY FICA NO ELEMENTO RAIZ (ID ou Name)

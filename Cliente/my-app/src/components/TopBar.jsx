@@ -26,7 +26,7 @@ export const TopBar = ({ dado, dinheiro, propriedade, notification }) => {
             className="topbar-notification" // <--- Classe CSS alinha tudo
             style={{fontWeight: "600", fontSize: "16px"}}
           >
-            {notification.toUpperCase()}
+            {notification}
           </motion.div>
         ) : (
           // --- ESTADO B: STATUS ---
