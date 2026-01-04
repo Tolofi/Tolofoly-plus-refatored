@@ -6,6 +6,7 @@ import { Alert } from "../components/Alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store";
+import { QRCodeSVG } from "qrcode.react";
 
 export const Login = () => {
   // 1. Juntei os States num lugar só
@@ -13,8 +14,23 @@ export const Login = () => {
   const { username, setNome } = useGameStore();
   const [alertShow, setAlertShow] = useState(false);
   const [mensagem, setMensagem] = useState("");
+  const [ip, setIp] = useState(
+    localStorage.getItem("socketIp") ? localStorage.getItem("socketIp") : ""
+  );
+  const [porta, setPorta] = useState(
+    localStorage.getItem("socketPorta")
+      ? localStorage.getItem("socketPorta")
+      : ""
+  );
+  const [isIpSetting, setIsIpSetting] = useState(false);
+  const [isIpShowing, setIsIpShowing] = useState(false);
   const navigate = useNavigate();
   const usernameStore = useGameStore((state) => state.username);
+
+  const qrData = JSON.stringify({
+    ip: ip,
+    porta: porta,
+  });
 
   // 2. Arrumei a função de enviar
   const enviarSolicitacaoNome = () => {
@@ -48,7 +64,6 @@ export const Login = () => {
       setNome("");
     }
 
-    
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("registerSuccess", onRegisterSuccess);
@@ -74,48 +89,190 @@ export const Login = () => {
   }, []);
 
   return (
-    <motion.div
-      // 1. O TRUQUE: 'false' desliga a animação de entrada
-      initial={false}
-      // 2. O ESTADO FINAL: Onde ela deve ficar parada (visível e no centro)
-      // (Mesmo com initial false, precisamos definir isso para o 'exit' saber de onde partir)
-      animate={{ x: 0 }}
-      // 3. O SAÍDA: Quando sair, vai para a esquerda (ou direita, você escolhe)
-      exit={{ x: "-100vw", opacity: 0 }}
-      transition={{ ease: "easeInOut", duration: 0.4 }}
-      className="login-container"
-    >
+    <>
+      <motion.div
+        // 1. O TRUQUE: 'false' desliga a animação de entrada
+        initial={false}
+        // 2. O ESTADO FINAL: Onde ela deve ficar parada (visível e no centro)
+        // (Mesmo com initial false, precisamos definir isso para o 'exit' saber de onde partir)
+        animate={{ x: 0 }}
+        // 3. O SAÍDA: Quando sair, vai para a esquerda (ou direita, você escolhe)
+        exit={{ x: "-100vw", opacity: 0 }}
+        transition={{ ease: "easeInOut", duration: 0.4 }}
+        className="login-container"
+      >
+        <AnimatePresence>
+          {alertShow && (
+            <Alert mensagem={mensagem} fechamento={() => setAlertShow(false)} />
+          )}
+        </AnimatePresence>
+        <div className="title-area">
+          <span className="login-game-title">Tolofoly</span>
+          <span className="login-game-description">
+            Banco Imobiliário Digital
+          </span>
+        </div>
+
+        <div className="input-group">
+          <span className="username-input-label">SEU NOME</span>
+          <input
+            type="text"
+            placeholder="Claudete Morel..."
+            className="username-input"
+            value={username}
+            onChange={(e) => setNome(e.target.value)}
+          />
+        </div>
+
+        {/* 4. Conectei a função no botão aqui: */}
+        <button className="btn-enter" onClick={enviarSolicitacaoNome}>
+          Entrar no Jogo
+        </button>
+
+        <span style={{ display: "flex", gap: "20px" }}>
+          <motion.button
+            className="magic-btn"
+            onClick={() => setIsIpSetting(true)}
+            style={{
+              height: "40px",
+              backgroundColor: "transparent",
+              border: "2px solid #820ad1",
+              color: "#820ad1",
+            }}
+          >
+            Colocar IP
+          </motion.button>
+          <motion.button
+            className="magic-btn"
+            onClick={() => setIsIpShowing(true)}
+            style={{
+              height: "40px",
+              backgroundColor: "transparent",
+              border: "2px solid #820ad1",
+              color: "#820ad1",
+            }}
+          >
+            Compartilhar IP
+          </motion.button>
+        </span>
+        <div className="connection-row">
+          <ConnectionLabel conectado={isConnected} />
+        </div>
+      </motion.div>
       <AnimatePresence>
-        {alertShow && (
-          <Alert mensagem={mensagem} fechamento={() => setAlertShow(false)} />
+        {isIpSetting && (
+          <motion.div
+            key={`overlay`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsIpSetting(false)} // Clicou aqui, fecha o modal
+            className="modal-overlay"
+          />
+        )}
+        {isIpSetting && (
+          <motion.div
+            key={`modal`}
+            className="ip-modal"
+            initial={{ y: "100vh", x: "-50%" }}
+            animate={{ y: "-50%", x: "-50%" }}
+            exit={{ y: "100vh", x: "-50%" }}
+            transition={{ ease: "easeInOut", duration: 0.5 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span
+              className="input-text"
+              style={{ color: "#1f2937", fontWeight: "700" }}
+            >
+              IP DA SALA
+            </span>
+            <input
+              type="text"
+              className="username-input"
+              placeholder="IP..."
+              onChange={(e) => setIp(e.target.value)}
+            />
+            <span
+              className="input-text"
+              style={{ color: "#1f2937", fontWeight: "700" }}
+            >
+              PORTA
+            </span>
+            <input
+              type="text"
+              className="username-input"
+              placeholder="PORTA..."
+              onChange={(e) => setPorta(e.target.value)}
+            />
+            <button
+              className="magic-btn"
+              onClick={() => {
+                localStorage.setItem("socketIp", ip);
+                localStorage.setItem("socketPorta", porta);
+                setIsIpSetting(false);
+                location.reload();
+                console.log(`${ip}:${porta}`);
+              }}
+            >
+              OK
+            </button>
+            <button className="magic-btn">QR CODE</button>
+          </motion.div>
+        )}
+        {isIpShowing && (
+          <>
+            <motion.div
+              key={`overlay`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsIpShowing(false)} // Clicou aqui, fecha o modal
+              className="modal-overlay"
+            />
+            <motion.div
+              key={`modal`}
+              className="ip-modal"
+              initial={{ y: "100vh", x: "-50%" }}
+              animate={{ y: "-50%", x: "-50%" }}
+              exit={{ y: "100vh", x: "-50%" }}
+              transition={{ ease: "easeInOut", duration: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span
+                className="input-text"
+                style={{ color: "#1f2937", fontWeight: "700" }}
+              >
+                IP DA SALA:
+              </span>
+              <span
+                className="input-text"
+                style={{ color: "#1f2937", fontWeight: "600" }}
+              >
+                {ip}
+              </span>
+
+              <span
+                className="input-text"
+                style={{ color: "#1f2937", fontWeight: "700" }}
+              >
+                PORTA:
+              </span>
+              <span
+                className="input-text"
+                style={{ color: "#1f2937", fontWeight: "600" }}
+              >
+                {porta}
+              </span>
+              <QRCodeSVG
+                value={qrData}
+                size={200} // Tamanho em pixels
+                level={"H"} // Nível de correção de erro (H é o mais alto)
+                marginSize={4}
+              />
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
-      <div className="title-area">
-        <span className="login-game-title">Tolofoly</span>
-        <span className="login-game-description">
-          Banco Imobiliário Digital
-        </span>
-      </div>
-
-      <div className="input-group">
-        <span className="username-input-label">SEU NOME</span>
-        <input
-          type="text"
-          placeholder="Claudete Morel..."
-          className="username-input"
-          value={username}
-          onChange={(e) => setNome(e.target.value)}
-        />
-      </div>
-
-      {/* 4. Conectei a função no botão aqui: */}
-      <button className="btn-enter" onClick={enviarSolicitacaoNome}>
-        Entrar no Jogo
-      </button>
-
-      <div className="connection-row">
-        <ConnectionLabel conectado={isConnected} />
-      </div>
-    </motion.div>
+    </>
   );
 }; // <--- Este colchete fecha o componente Login. Antes tinha dois aqui.
