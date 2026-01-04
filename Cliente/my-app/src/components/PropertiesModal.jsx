@@ -163,7 +163,7 @@ export const PropertiesModal = ({ close, allPlayers, onSell }) => {
                   </div>
                   {actions.length > 0 && (
                     <div style={{ marginTop: "10px", padding: "0 5px" }}>
-                      <ActionButtons actions={actions} passTurn={null} />
+                      <ActionButtons actions={actions} passTurn={null} isProperty={true}/>
                     </div>
                   )}
                 </div>

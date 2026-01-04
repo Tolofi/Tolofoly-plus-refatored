@@ -33,6 +33,7 @@ export const MainPage = () => {
   const [transferAmount, setTransferAmount] = useState(0);
   const [transferTarget, setTransferTarget] = useState("");
   const [allPlayersList, setAllPlayersList] = useState([]);
+  const [isDiceRequired, setIsDiceRequired] = useState(false);
 
   // Animações e Notificações
   const [paymentAnimation, setPaymentAnimation] = useState(null);
@@ -54,6 +55,7 @@ export const MainPage = () => {
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [propertyToSell, setPropertyToSell] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [fakeDice, setFakeDice] = useState(null);
 
   // 3. Lógica Derivada
   const currentProperty = useGameStore((state) => state.currentProperty);
@@ -80,10 +82,22 @@ export const MainPage = () => {
     setIsModalOpen(true);
   }
 
+  function rollFakeDices() {
+    setFakeDice({
+      d1: rolarUmDado(),
+      d2: rolarUmDado(),
+    });
+    setIsDiceRequired(true);
+
+    setTimeout(() => {
+      setIsDiceRequired(false);
+    }, 5000);
+  }
+
   function closeAndSendModal() {
     setIsProcessing(true);
     modalVariant === "move" && socket.emit("moveByPlayer", modalQtd);
-    modalVariant === "getMoney" && socket.emit("getMoneyByPlayer", modalQtd);
+    modalVariant === "getMoney" && bankMoneyRequest();
     setIsModalOpen(false);
     setIsMagicBoxOpen(false);
     setModalQtd(0);
@@ -99,6 +113,11 @@ export const MainPage = () => {
     setIsMagicBoxOpen(false);
   }
 
+  function bankMoneyRequest() {
+    socket.emit("getMoneyByPlayer", modalQtd);
+    setBankAnimation({ source: `Pagamento`, value: modalQtd })
+  }
+  
   function finishTurn() {
     socket.emit("finishTurn");
     useGameStore.getState().setIsMyTurn(false);
@@ -114,6 +133,10 @@ export const MainPage = () => {
 
   function teste() {
     socket.emit("testDice");
+  }
+
+  function rolarUmDado() {
+    return Math.floor(Math.random() * 6) + 1;
   }
 
   const handleDiceComplete = () => {
@@ -209,7 +232,7 @@ export const MainPage = () => {
     function onJailled(data) {
       const msg = data?.message || "Você continua preso.";
       onNotification(msg);
-      console.log("Você esta preso.")
+      console.log("Você esta preso.");
       // 1. NÃO mude para 'DECIDING'. Isso evitará que os botões apareçam.
       // Mantenha o estado atual ou mude para algo bloqueado se tiver.
 
@@ -641,11 +664,20 @@ export const MainPage = () => {
         </AnimatePresence>
 
         <AnimatePresence mode="wait">
+          {isDiceRequired && (
+            <RolarDados
+              d1={fakeDice.d1}
+              d2={fakeDice.d2}
+              serverTotal={fakeDice.d1 + fakeDice.d2}
+              onComplete={() => {}}
+            />
+          )}
           {isMagicBoxOpen && (
             <MagicBox
               key="magic-box"
               open={openMagicBoxModal}
               close={() => setIsMagicBoxOpen(false)}
+              dices={rollFakeDices}
             />
           )}
           {!isMagicBoxOpen && !showFailModal && (

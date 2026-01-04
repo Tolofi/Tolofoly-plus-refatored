@@ -221,9 +221,6 @@ export class SocketAdmin {
 
         // 2. Avisa TODOS quem é o jogador da vez (Atualiza TopBar e bloqueia os outros)
         this.io.emit("turn_update", { playerDaVez: nextPlayer.username });
-
-        // Histórico
-        this.emitPersonalHistory(nextPlayer.username, `🔔 Sua vez de jogar.`);
       });
 
       // ============================
@@ -260,6 +257,40 @@ export class SocketAdmin {
         });
       });
 
+      socket.on("rollDiceByPlayer", () => {
+        const username = Memory.getUsernameBySocketId(socket.id)!.getUsername();
+        const player = Memory.getPlayerByUsername(username);
+        dadoAtual = Banco.rolarDados();
+        const posicaoAntiga = player!.getPosicao();
+
+        Banco.moverJogador(player!.getUsername(), dadoAtual);
+        socket.emit("diceRolled", dadoAtual);
+
+        this.emitPersonalHistory(
+          username!,
+          `🎲 Você tirou ${dadoAtual} jogando o dado manualmente.`
+        );
+        this.emitPersonalHistory(
+          username,
+          `🚶 ${Memory.getPropriedadeById(posicaoAntiga).getName()} -> ${Memory.getPropriedadeById(player.getPosicao()).getName()}`
+        );
+
+        if (posicaoAntiga > player!.getPosicao()) {
+          const pontoPartidaRes = Banco.pontoPartida(player!.getUsername());
+          socket.emit("begginingPoint", pontoPartidaRes);
+          if (pontoPartidaRes.status) {
+            this.emitPersonalHistory(
+              username!,
+              `🔄 Você completou uma volta! +R$ 2000.`
+            );
+          }
+        }
+
+        socket.emit("currentRoundData", {
+          propriedade: Memory.getPropriedadeById(player!.getPosicao()),
+        });
+      });
+
       socket.on("moveByPlayer", (qtd: number) => {
         const info = Memory.getUsernameBySocketId(socket.id);
         if (!info) return;
@@ -271,6 +302,10 @@ export class SocketAdmin {
         this.emitPersonalHistory(
           info.username,
           `🚶 Você andou ${qtd} casas (Manual).`
+        );
+        this.emitPersonalHistory(
+          info.username,
+          `🚶 ${Memory.getPropriedadeById(posicaoAntiga).getName()} -> ${Memory.getPropriedadeById(info.getPosicao()).getName()}`
         );
 
         if (
@@ -359,6 +394,10 @@ export class SocketAdmin {
             info.username,
             `🎲 Você tirou ${dadoAtual} e avançou.`
           );
+          this.emitPersonalHistory(
+          info.username,
+          `🚶 ${Memory.getPropriedadeById(posicaoAntiga).getName()} -> ${Memory.getPropriedadeById(info.getPosicao()).getName()}`
+        );
 
           if (posicaoAntiga > player.getPosicao()) {
             const pontoPartidaRes = Banco.pontoPartida(player.getUsername());

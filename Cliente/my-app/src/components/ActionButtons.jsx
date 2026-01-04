@@ -2,7 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGameStore } from "../store";
 
-export const ActionButtons = ({ actions, passTurn }) => {
+export const ActionButtons = ({ actions, passTurn, isProperty }) => {
   // Segurança: Se a lista estiver vazia ou nula, não renderiza nada
   const isMyTurn = useGameStore((state) => state.isMyTurn);
 
@@ -34,7 +34,7 @@ export const ActionButtons = ({ actions, passTurn }) => {
               {btn.label}
             </motion.button>
           ))}
-          {isMyTurn && (
+          {(isMyTurn && !isProperty) && (
             <motion.button
               // Adicione layout nos botões também para eles deslizarem suavemente
               layout
