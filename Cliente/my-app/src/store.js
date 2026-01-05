@@ -16,8 +16,10 @@
 
     // Adicionamos o Map aqui para guardar as propriedades
     properties: new Map(),
+    players: [],
 
     // 2. AÇÕES
+    setPlayers: (newPlayers) => set({players: newPlayers}),
     setHistory: (newHistory) => set({history: newHistory}),
     addHistoryItem: (item) => set((state) => ({ history: [...state.history, item] })),
     setTurnPhase: (phase) => set({ turnPhase: phase }),
@@ -47,6 +49,11 @@
 
       // Salva o novo Map no estado
       set({ properties: mapTemporario });
+    },
+
+    updatePlayersArray(data) {
+      let arrayTemporario = data;
+      set({ players: arrayTemporario });
     },
 
     updatePlayer: (dataObject) => {

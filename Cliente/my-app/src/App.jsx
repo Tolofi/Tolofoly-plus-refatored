@@ -3,10 +3,12 @@ import { AnimatePresence } from "framer-motion";
 import { Login } from "./pages/Login";
 import { Wait } from "./pages/Wait";
 import "./Main.css";
+import "./boardCss.css"
 import { MainPage } from "./pages/MainPage";
 import { useEffect } from "react";
 // Importar o socket garante que ele inicialize e leia a URL do PWA
 import { socket } from "../socket";
+import { AuxiliarScreen } from "./pages/Auxiliar";
 
 const RotasAnimadas = () => {
   const location = useLocation();
@@ -24,6 +26,7 @@ const RotasAnimadas = () => {
         <Route path="/" element={<Login />} />
         <Route path="/wait" element={<Wait />} />
         <Route path="/main" element={<MainPage />} />
+        <Route path="/board" element={<AuxiliarScreen />} />
       </Routes>
     </AnimatePresence>
   );

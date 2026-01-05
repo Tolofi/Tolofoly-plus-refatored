@@ -782,6 +782,13 @@ button:focus {
   display: none;
 }
 
+.pml {
+  flex: 1;
+  overflow-y: auto !important; /* Força o scroll vertical */
+  -webkit-overflow-scrolling: touch; /* Melhora a fluidez no iOS */
+  padding-bottom: 50px; /* Margem extra para o último item não ficar colado */
+}
+
 .ip-modal {
   /* Posicionamento fixo para sobrepor tudo */
   position: fixed;

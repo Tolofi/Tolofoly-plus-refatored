@@ -1,19 +1,24 @@
 import { useState, useEffect } from "react";
 import { ConnectionLabel } from "../components/ConnectionLabel";
-// import { Alert } from "../components/Alert"; // Se for usar o alerta personalizado depois
-import { socket } from "../../socket"; // Confirme se o caminho está certo
+import { socket } from "../../socket";
 import { Alert } from "../components/Alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store";
 import { QRCodeSVG } from "qrcode.react";
 
+// 1. Importação do Scanner Nativo
+import {
+  BarcodeScanner,
+  BarcodeFormat,
+} from "@capacitor-mlkit/barcode-scanning";
+
 export const Login = () => {
-  // 1. Juntei os States num lugar só
   const [isConnected, setIsConnected] = useState(socket.connected);
   const { username, setNome } = useGameStore();
   const [alertShow, setAlertShow] = useState(false);
   const [mensagem, setMensagem] = useState("");
+
   const [ip, setIp] = useState(
     localStorage.getItem("socketIp") ? localStorage.getItem("socketIp") : ""
   );
@@ -22,43 +27,81 @@ export const Login = () => {
       ? localStorage.getItem("socketPorta")
       : ""
   );
+
   const [isIpSetting, setIsIpSetting] = useState(false);
   const [isIpShowing, setIsIpShowing] = useState(false);
   const navigate = useNavigate();
   const usernameStore = useGameStore((state) => state.username);
 
+  // Dados que serão transformados em QR Code
   const qrData = JSON.stringify({
     ip: ip,
     porta: porta,
   });
 
-  // 2. Arrumei a função de enviar
+  // 2. Lógica para ESCANEAR o QR Code
+  const handleQrScan = async () => {
+    try {
+      // Pedir permissão de câmera
+      const { camera } = await BarcodeScanner.requestPermissions();
+
+      if (camera !== "granted") {
+        setMensagem("Permissão de câmera negada.");
+        setAlertShow(true);
+        return;
+      }
+
+      // Iniciar leitura
+      const { barcodes } = await BarcodeScanner.scan({
+        formats: [BarcodeFormat.QrCode],
+      });
+
+      if (barcodes.length > 0) {
+        const rawData = barcodes[0].displayValue;
+
+        try {
+          const config = JSON.parse(rawData);
+          if (config.ip && config.porta) {
+            // Salva os dados lidos
+            localStorage.setItem("socketIp", config.ip);
+            localStorage.setItem("socketPorta", config.porta);
+
+            // Atualiza estados e recarrega para aplicar ao socket
+            setIp(config.ip);
+            setPorta(config.porta);
+            setIsIpSetting(false);
+            window.location.reload();
+          }
+        } catch (e) {
+          setMensagem("QR Code inválido.");
+          setAlertShow(true);
+        }
+      }
+    } catch (error) {
+      console.error("Erro no scanner: ", error);
+    }
+  };
+
   const enviarSolicitacaoNome = () => {
     if (username === "") {
       setMensagem("Campo de nome vazio.");
-      setAlertShow(true); // Coloquei um alerta simples por enquanto
+      setAlertShow(true);
       return;
     }
-    console.log(username);
     socket.emit("registerPlayer", usernameStore);
-    // Aqui viria sua lógica de navegação ou socket.emit...
   };
 
-  // 3. O useEffect estava correto, mantive igual
   useEffect(() => {
     function onConnect() {
       setIsConnected(true);
     }
-
     function onDisconnect() {
       setIsConnected(false);
     }
-
     function onRegisterSuccess() {
       navigate("/wait");
       console.log(`Logado como: ${username}!`);
     }
-
     function onRegisterFail(message) {
       console.log(message);
       setNome("");
@@ -69,34 +112,29 @@ export const Login = () => {
     socket.on("registerSuccess", onRegisterSuccess);
     socket.on("registerFail", onRegisterFail);
 
-    socket.on("propertiesUpdate", (data) => {
-      console.log(data);
-    });
-    socket.on("playerUpdate", (data) => {
-      console.log(`player: ${JSON.stringify(data, null, 2)}`);
-      console.log(data.propriedades);
-    });
-
     if (!socket.connected) {
       socket.connect();
     }
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
-      socket.off("propertiesUpdate");
-      socket.off("playerUpdate");
+      socket.off("registerSuccess", onRegisterSuccess);
+      socket.off("registerFail", onRegisterFail);
     };
-  }, []);
+  }, [navigate, username, setNome]);
 
   return (
     <>
+      <button
+        style={{ position: "fixed", left: "50%", bottom: "1%", transform: "translateX(-50%)", backgroundColor: "#820ad1"}}
+        onClick={() => navigate("/board")}
+      >
+        M
+      </button>
+
       <motion.div
-        // 1. O TRUQUE: 'false' desliga a animação de entrada
         initial={false}
-        // 2. O ESTADO FINAL: Onde ela deve ficar parada (visível e no centro)
-        // (Mesmo com initial false, precisamos definir isso para o 'exit' saber de onde partir)
         animate={{ x: 0 }}
-        // 3. O SAÍDA: Quando sair, vai para a esquerda (ou direita, você escolhe)
         exit={{ x: "-100vw", opacity: 0 }}
         transition={{ ease: "easeInOut", duration: 0.4 }}
         className="login-container"
@@ -106,6 +144,7 @@ export const Login = () => {
             <Alert mensagem={mensagem} fechamento={() => setAlertShow(false)} />
           )}
         </AnimatePresence>
+
         <div className="title-area">
           <span className="login-game-title">Tolofoly</span>
           <span className="login-game-description">
@@ -124,12 +163,11 @@ export const Login = () => {
           />
         </div>
 
-        {/* 4. Conectei a função no botão aqui: */}
         <button className="btn-enter" onClick={enviarSolicitacaoNome}>
           Entrar no Jogo
         </button>
 
-        <span style={{ display: "flex", gap: "20px" }}>
+        <span style={{ display: "flex", gap: "20px", marginTop: "10px" }}>
           <motion.button
             className="magic-btn"
             onClick={() => setIsIpSetting(true)}
@@ -155,82 +193,118 @@ export const Login = () => {
             Compartilhar IP
           </motion.button>
         </span>
+
         <div className="connection-row">
           <ConnectionLabel conectado={isConnected} />
         </div>
       </motion.div>
+
       <AnimatePresence>
+        {/* MODAL PARA CONFIGURAR MANUALLY OU SCANNER */}
         {isIpSetting && (
-          <motion.div
-            key={`overlay`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsIpSetting(false)} // Clicou aqui, fecha o modal
-            className="modal-overlay"
-          />
-        )}
-        {isIpSetting && (
-          <motion.div
-            key={`modal`}
-            className="ip-modal"
-            initial={{ y: "100vh", x: "-50%" }}
-            animate={{ y: "-50%", x: "-50%" }}
-            exit={{ y: "100vh", x: "-50%" }}
-            transition={{ ease: "easeInOut", duration: 0.5 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span
-              className="input-text"
-              style={{ color: "#1f2937", fontWeight: "700" }}
-            >
-              IP DA SALA
-            </span>
-            <input
-              type="text"
-              className="username-input"
-              placeholder="IP..."
-              onChange={(e) => setIp(e.target.value)}
-            />
-            <span
-              className="input-text"
-              style={{ color: "#1f2937", fontWeight: "700" }}
-            >
-              PORTA
-            </span>
-            <input
-              type="text"
-              className="username-input"
-              placeholder="PORTA..."
-              onChange={(e) => setPorta(e.target.value)}
-            />
-            <button
-              className="magic-btn"
-              onClick={() => {
-                localStorage.setItem("socketIp", ip);
-                localStorage.setItem("socketPorta", porta);
-                setIsIpSetting(false);
-                location.reload();
-                console.log(`${ip}:${porta}`);
-              }}
-            >
-              OK
-            </button>
-            <button className="magic-btn">QR CODE</button>
-          </motion.div>
-        )}
-        {isIpShowing && (
           <>
             <motion.div
-              key={`overlay`}
+              key="overlay-setting"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsIpShowing(false)} // Clicou aqui, fecha o modal
+              onClick={() => setIsIpSetting(false)}
               className="modal-overlay"
             />
             <motion.div
-              key={`modal`}
+              key="modal-setting"
+              className="ip-modal"
+              initial={{ y: "100vh", x: "-50%" }}
+              animate={{ y: "-50%", x: "-50%" }}
+              exit={{ y: "100vh", x: "-50%" }}
+              transition={{ ease: "easeInOut", duration: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span
+                className="input-text"
+                style={{ color: "#1f2937", fontWeight: "700" }}
+              >
+                IP DA SALA
+              </span>
+              <input
+                type="text"
+                className="username-input"
+                placeholder="IP..."
+                value={ip}
+                onChange={(e) => setIp(e.target.value)}
+                inputMode="decimal"
+              />
+              <span
+                className="input-text"
+                style={{ color: "#1f2937", fontWeight: "700" }}
+              >
+                PORTA
+              </span>
+              <input
+                type="text"
+                className="username-input"
+                placeholder="PORTA..."
+                value={porta}
+                onChange={(e) => setPorta(e.target.value)}
+                inputMode="decimal"
+              />
+              <button
+                className="magic-btn"
+                onClick={() => {
+                  // 1. Salva no localStorage
+                  localStorage.setItem("socketIp", ip);
+                  localStorage.setItem("socketPorta", porta);
+
+                  // 2. FORÇA O SOCKET A MUDAR O ENDEREÇO AGORA
+                  // Isso garante que mesmo sem o reload terminar, o socket já sabe o destino
+                  socket.io.uri = `http://${ip}:${porta}`;
+
+                  // 3. TENTA CONECTAR IMEDIATAMENTE
+                  if (!socket.connected) {
+                    socket.connect();
+                  }
+
+                  setIsIpSetting(false);
+                  // O reload agora é apenas um "refresco", a conexão já foi disparada
+                  window.location.reload();
+                }}
+              >
+                OK
+              </button>
+
+              <div
+                style={{
+                  width: "100%",
+                  height: "1px",
+                  background: "#ccc",
+                  margin: "10px 0",
+                }}
+              />
+
+              <button
+                className="magic-btn"
+                onClick={handleQrScan}
+                style={{ backgroundColor: "#000" }}
+              >
+                ESCANEAR QR CODE
+              </button>
+            </motion.div>
+          </>
+        )}
+
+        {/* MODAL PARA MOSTRAR QR CODE (COMPARTILHAR) */}
+        {isIpShowing && (
+          <>
+            <motion.div
+              key="overlay-showing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsIpShowing(false)}
+              className="modal-overlay"
+            />
+            <motion.div
+              key="modal-showing"
               className="ip-modal"
               initial={{ y: "100vh", x: "-50%" }}
               animate={{ y: "-50%", x: "-50%" }}
@@ -248,7 +322,7 @@ export const Login = () => {
                 className="input-text"
                 style={{ color: "#1f2937", fontWeight: "600" }}
               >
-                {ip}
+                {ip || "Não definido"}
               </span>
 
               <span
@@ -261,18 +335,28 @@ export const Login = () => {
                 className="input-text"
                 style={{ color: "#1f2937", fontWeight: "600" }}
               >
-                {porta}
+                {porta || "Não definido"}
               </span>
-              <QRCodeSVG
-                value={qrData}
-                size={200} // Tamanho em pixels
-                level={"H"} // Nível de correção de erro (H é o mais alto)
-                marginSize={4}
-              />
+
+              <div
+                style={{
+                  marginTop: "15px",
+                  padding: "10px",
+                  background: "#fff",
+                  borderRadius: "10px",
+                }}
+              >
+                <QRCodeSVG
+                  value={qrData}
+                  size={200}
+                  level={"H"}
+                  marginSize={4}
+                />
+              </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
     </>
   );
-}; // <--- Este colchete fecha o componente Login. Antes tinha dois aqui.
+};

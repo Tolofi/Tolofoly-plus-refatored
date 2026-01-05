@@ -30,6 +30,15 @@ export class SocketAdmin {
       player.getUsername()
     );
 
+    const playersObject = Array.from(Memory.players.values()).map((player) =>
+      player.toDTO()
+    );
+
+    console.log("Enviando playersObject:", playersObject);
+
+    // CORREÇÃO: O dado deve estar DENTRO do parênteses
+    this.io.emit("allPLayerObject", playersObject);
+
     this.io.emit("allPlayersUpdate", playerNames);
   }
 
@@ -65,6 +74,21 @@ export class SocketAdmin {
     this.io.on("connection", (socket: Socket) => {
       console.log(`Novo socket conectado: ${socket.id}`);
 
+      socket.on("requestBoardData", () => {
+        // Memory.propriedades é o seu Map
+        // Convertemos para objeto pois o Socket.io não envia Maps nativos
+        const propsParaEnviar = Object.fromEntries(Memory.propriedades);
+
+        socket.emit("initProperties", propsParaEnviar);
+
+        // Aproveita e já manda a lista de jogadores também
+        const listaJogadores = Array.from(Memory.players.values()).map((p) =>
+          p.toDTO()
+        );
+        socket.emit("allPLayerObject", listaJogadores);
+      });
+      this.sendAllPlayers();
+      this.emitPropertiesUpdate();
       // ============================
       // REGISTRO & RECONEXÃO
       // ============================
@@ -234,6 +258,7 @@ export class SocketAdmin {
         const posicaoAntiga = player!.getPosicao();
 
         Banco.moverJogador(player!.getUsername(), dadoAtual);
+        this.sendAllPlayers();
         socket.emit("diceRolled", dadoAtual);
 
         this.emitPersonalHistory(
@@ -249,6 +274,7 @@ export class SocketAdmin {
               username!,
               `🔄 Você completou uma volta! +R$ 2000.`
             );
+            this.sendAllPlayers(); // Atualiza grana da volta na TV
           }
         }
 
@@ -264,6 +290,7 @@ export class SocketAdmin {
         const posicaoAntiga = player!.getPosicao();
 
         Banco.moverJogador(player!.getUsername(), dadoAtual);
+        this.sendAllPlayers();
         socket.emit("diceRolled", dadoAtual);
 
         this.emitPersonalHistory(
@@ -272,7 +299,11 @@ export class SocketAdmin {
         );
         this.emitPersonalHistory(
           username,
-          `🚶 ${Memory.getPropriedadeById(posicaoAntiga).getName()} -> ${Memory.getPropriedadeById(player.getPosicao()).getName()}`
+          `🚶 ${Memory.getPropriedadeById(
+            posicaoAntiga
+          ).getName()} -> ${Memory.getPropriedadeById(
+            player.getPosicao()
+          ).getName()}`
         );
 
         if (posicaoAntiga > player!.getPosicao()) {
@@ -283,6 +314,7 @@ export class SocketAdmin {
               username!,
               `🔄 Você completou uma volta! +R$ 2000.`
             );
+            this.sendAllPlayers(); // Atualiza grana da volta na TV
           }
         }
 
@@ -298,6 +330,7 @@ export class SocketAdmin {
 
         Banco.soltarJogadorForcado(info.getUsername());
         Banco.moverJogador(info.getUsername(), qtd);
+        this.sendAllPlayers();
 
         this.emitPersonalHistory(
           info.username,
@@ -305,7 +338,11 @@ export class SocketAdmin {
         );
         this.emitPersonalHistory(
           info.username,
-          `🚶 ${Memory.getPropriedadeById(posicaoAntiga).getName()} -> ${Memory.getPropriedadeById(info.getPosicao()).getName()}`
+          `🚶 ${Memory.getPropriedadeById(
+            posicaoAntiga
+          ).getName()} -> ${Memory.getPropriedadeById(
+            info.getPosicao()
+          ).getName()}`
         );
 
         if (
@@ -325,6 +362,7 @@ export class SocketAdmin {
               info.username,
               `🔄 Bônus de volta: +R$ 2000.`
             );
+            this.sendAllPlayers();
           }
         }
 
@@ -336,6 +374,7 @@ export class SocketAdmin {
               info.username,
               `🔄 Bônus de volta: +R$ 2000.`
             );
+            this.sendAllPlayers();
           }
         }
 
@@ -353,6 +392,7 @@ export class SocketAdmin {
 
         info.aumentarSaldo(qtd);
         this.emitPlayerUpdate(info.username);
+        this.sendAllPlayers(); // Atualiza saldo na TV
         this.emitPropertiesUpdate();
 
         this.emitPersonalHistory(
@@ -381,6 +421,7 @@ export class SocketAdmin {
 
           const posicaoAntiga = player.getPosicao();
           Banco.moverJogador(info.username, dadoAtual);
+          this.sendAllPlayers();
           if (
             Memory.getPropriedadeById(info.getPosicao())?.getColor === "Prisao"
           ) {
@@ -395,9 +436,13 @@ export class SocketAdmin {
             `🎲 Você tirou ${dadoAtual} e avançou.`
           );
           this.emitPersonalHistory(
-          info.username,
-          `🚶 ${Memory.getPropriedadeById(posicaoAntiga).getName()} -> ${Memory.getPropriedadeById(info.getPosicao()).getName()}`
-        );
+            info.username,
+            `🚶 ${Memory.getPropriedadeById(
+              posicaoAntiga
+            ).getName()} -> ${Memory.getPropriedadeById(
+              info.getPosicao()
+            ).getName()}`
+          );
 
           if (posicaoAntiga > player.getPosicao()) {
             const pontoPartidaRes = Banco.pontoPartida(player.getUsername());
@@ -407,6 +452,7 @@ export class SocketAdmin {
                 info.username,
                 `💰 Bônus de Início: +R$ 2000.`
               );
+              this.sendAllPlayers();
             }
           }
 
@@ -440,7 +486,9 @@ export class SocketAdmin {
         const propriedadesArray = Memory.getAllPropertiesByArray();
         this.io.emit("propertiesUpdate", propriedadesArray);
         socket.emit("buyPropertyResult", result);
+
         this.emitPlayerUpdate(info.username);
+        this.sendAllPlayers(); // Atualiza barra de progresso e grana na TV
         this.emitPropertiesUpdate();
 
         if (result.status) {
@@ -476,6 +524,8 @@ export class SocketAdmin {
 
         this.emitPlayerUpdate(info.username);
         if (donoAnterior) this.emitPlayerUpdate(donoAnterior);
+
+        this.sendAllPlayers(); // Atualiza barra de todos na TV
         this.emitPropertiesUpdate();
 
         if (result.status) {
@@ -506,6 +556,7 @@ export class SocketAdmin {
         socket.emit("bankPaymentResult", result);
 
         this.emitPlayerUpdate(info.username);
+        this.sendAllPlayers(); // Atualiza grana na TV
 
         if (result.status) {
           this.emitPersonalHistory(
@@ -523,6 +574,7 @@ export class SocketAdmin {
         socket.emit("begginingPointResult", result);
 
         this.emitPlayerUpdate(info.username);
+        this.sendAllPlayers();
 
         if (result.status) {
           this.emitPersonalHistory(
@@ -543,6 +595,9 @@ export class SocketAdmin {
 
         socket.emit("aiMessage", mensagem.mensagemPrivada);
         socket.emit("publicAiMessage", mensagem.mensagemPublica);
+
+        // Se a carta mudar grana ou posição, atualiza TV
+        this.sendAllPlayers();
 
         this.emitPersonalHistory(
           info,
@@ -565,15 +620,12 @@ export class SocketAdmin {
           }
 
           // Realiza a transferência (Lógica interna do Banco/Propriedade)
-          // Como o método setOwner geralmente é simples, podemos fazer direto ou via Banco
           propriedade.setOwner(targetUsername);
-
-          // Se houver lógica de resetar nível ao trocar de dono, aplique aqui.
-          // Ex: propriedade.setLevel(0);
 
           // Notificações
           this.emitPlayerUpdate(info.username);
           this.emitPlayerUpdate(targetUsername);
+          this.sendAllPlayers(); // Atualiza barras de patrimônio na TV
           this.emitPropertiesUpdate();
 
           socket.emit("notification", `Propriedade transferida com sucesso.`);
@@ -621,6 +673,7 @@ export class SocketAdmin {
 
           this.emitPlayerUpdate(sendingUsername);
           this.emitPlayerUpdate(destinyUsername);
+          this.sendAllPlayers(); // Atualiza saldo de ambos na TV
           this.emitPropertiesUpdate();
 
           if (resultado.status) {
@@ -657,6 +710,7 @@ export class SocketAdmin {
 
           this.io.emit("propertiesUpdate", Memory.getAllPropertiesByArray());
           socket.emit("playerUpdate", player);
+          this.sendAllPlayers(); // Atualiza grana e patrimônio na TV
 
           this.emitPersonalHistory(
             username,
@@ -676,6 +730,7 @@ export class SocketAdmin {
         socket.emit("notification", tentativa);
         this.io.emit("propertiesUpdate", Memory.getAllPropertiesByArray());
         socket.emit("playerUpdate", Memory.getUsernameBySocketId(socket.id));
+        this.sendAllPlayers(); // Grana gasta na obra
 
         this.emitPersonalHistory(username, `🏗️ ${tentativa}`);
       });
@@ -689,6 +744,7 @@ export class SocketAdmin {
         socket.emit("notification", tentativa);
         this.io.emit("propertiesUpdate", Memory.getAllPropertiesByArray());
         socket.emit("playerUpdate", Memory.getUsernameBySocketId(socket.id));
+        this.sendAllPlayers(); // Grana recebida da venda de casa
 
         this.emitPersonalHistory(username, `🏚️ ${tentativa}`);
       });

@@ -120,7 +120,7 @@ export class Memory {
       new Propriedade(
         i,
         "Rua 25 de Março",
-        "#ADD8E6",
+        "#94bdcaff",
         "Azul Claro",
         500,
         60,
@@ -133,11 +133,11 @@ export class Memory {
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Av. São João", "#ADD8E6", "Azul Claro", 500, 60, 1000)
+      new Propriedade(i, "Av. São João", "#94bdcaff", "Azul Claro", 500, 60, 1000)
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Av. Paulista", "#ADD8E6", "Azul Claro", 500, 80, 1200)
+      new Propriedade(i, "Av. Paulista", "#94bdcaff", "Azul Claro", 500, 80, 1200)
     ); // ID 9
     Memory.propriedades.set(
       i++,
@@ -307,7 +307,7 @@ export class Memory {
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Av. Morumbi", "#0000FF", "Azul", 2000, 350, 3500)
+      new Propriedade(i, "Av. Morumbi", "#1C4E9A", "Azul", 2000, 350, 3500)
     );
     Memory.propriedades.set(
       i++,
@@ -315,7 +315,7 @@ export class Memory {
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Rua Oscar Freire", "#0000FF", "Azul", 2000, 500, 4000)
+      new Propriedade(i, "Rua Oscar Freire", "#1C4E9A", "Azul", 2000, 500, 4000)
     );
 
     // --- PASSO CRÍTICO: GARANTIA DE INTEGRIDADE ---

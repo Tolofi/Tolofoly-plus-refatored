@@ -1,0 +1,295 @@
+/* =======================
+   RESET & FONTS
+======================= */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Manrope", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* =======================
+   CONTAINER PRINCIPAL
+======================= */
+.game-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background: #050505; /* Fundo bem escuro */
+  padding: 15px;
+  gap: 15px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* Evita scroll na página inteira */
+}
+
+/* =======================
+   COLUNAS LATERAIS
+======================= */
+.sidebar-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 280px;
+  height: 95vh;
+}
+
+/* =======================
+   CARD DO JOGADOR
+======================= */
+.player-card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  border-radius: 15px;
+  border-left: 5px solid; /* Cor do jogador definida no JSX */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+}
+
+.player-header {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.player-name {
+  color: white;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.player-money {
+  color: #2ecc71;
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
+.prop-count {
+  font-weight: 700;
+  color: #aaa;
+  font-size: 0.8rem;
+}
+
+/* =======================
+   LOCALIZAÇÃO DO JOGADOR
+======================= */
+.location-badge {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  width: fit-content;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.location-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.location-text {
+  color: #eee;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* =======================
+   TABULEIRO (GRID)
+======================= */
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  grid-template-rows: repeat(11, 1fr);
+  width: 90vh; /* Quadrado responsivo à altura */
+  height: 90vh;
+  gap: 6px;
+  background: #0f0f0f;
+  padding: 10px;
+  border-radius: 24px;
+  flex-shrink: 0;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.tile {
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.tile-strip {
+  width: 100%;
+  height: 10px; /* Faixa de cor no topo */
+}
+
+.tile-name {
+  font-size: 8px;
+  text-align: center;
+  font-weight: 900;
+  padding: 4px 2px 0 2px;
+  color: #1a1a1a;
+  text-transform: uppercase;
+  line-height: 1.1;
+  flex: 1; /* Ocupa espaço para empurrar o preço pra baixo */
+  display: flex;
+  align-items: center; /* Centraliza verticalmente o nome */
+  justify-content: center;
+}
+
+/* Estilo do Preço dentro do Tabuleiro */
+.tile-price {
+  font-size: 8px;
+  color: #555;
+  font-weight: 700;
+  margin-bottom: 4px; /* Espaço inferior */
+  background: rgba(0, 0, 0, 0.05);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* Container para os peões não quebrarem o layout da tile */
+.pawn-container {
+  position: absolute;
+  bottom: 6px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* =======================
+   LISTA DE PROPRIEDADES
+   (Compacta & Colorida)
+======================= */
+.market-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* Fundo sutil para a coluna inteira */
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 15px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  height: 95vh;
+
+  /* Scrollbar */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Customização da barra de rolagem */
+.market-column::-webkit-scrollbar {
+  width: 4px;
+}
+.market-column::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+.market-column::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+.market-column::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Item da Lista (O Card Colorido) */
+.prop-row-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+
+  /* Borda arredondada suave */
+  border-radius: 6px;
+
+  /* Altura fixa para uniformidade */
+  min-height: 38px;
+
+  /* Efeitos de transição */
+  transition: all 0.2s ease;
+  position: relative;
+
+  /* NOTA: O 'background' e 'border-left' vêm inline do React 
+     para combinar com a cor da propriedade */
+}
+
+.prop-row-item:hover {
+  filter: brightness(1.2); /* Fica mais brilhante ao passar o mouse */
+  transform: translateX(2px); /* Move levemente para direita */
+  z-index: 10;
+}
+
+/* Grupo Esquerda: Nome */
+.prop-left-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1; /* Ocupa todo espaço sobrando */
+  overflow: hidden;
+}
+
+.prop-row-name {
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  /* Sombra essencial para ler texto branco em fundos claros (amarelo/ciano) */
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  letter-spacing: 0.5px;
+}
+
+/* Grupo Direita: Detalhes */
+.prop-row-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.prop-row-houses {
+  font-size: 0.75rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  gap: 4px;
+  /* Sombra forte para ícone e texto */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
+
+.prop-row-owner {
+  font-size: 0.65rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 800;
+  text-transform: uppercase;
+
+  min-width: 45px;
+  max-width: 60px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  /* Borda sutil para separar do fundo colorido */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
