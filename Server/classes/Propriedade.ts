@@ -84,4 +84,7 @@ export class Propriedade {
     if(this.level < 1) return
     return this.level--;
   }
+  getId() {
+    return this.id;
+  }
 }

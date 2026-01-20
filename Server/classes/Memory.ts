@@ -86,6 +86,8 @@ export class Memory {
       return;
     }
 
+
+
     let i = 0;
 
     // --- GRUPO 1 ---
@@ -327,8 +329,16 @@ export class Memory {
     this.isPropertyInitialized = true;
 
     // --- DEBUG PARA VOCÊ CONFERIR NO TERMINAL DO SERVIDOR ---
+    // --- DEBUG PARA VOCÊ CONFERIR NO TERMINAL DO SERVIDOR ---
     console.log("--- TABULEIRO INICIALIZADO ---");
     console.log(`Total: ${Memory.propriedades.size} propriedades`);
+    console.log(`==============================`);
+
+    // USANDO JSON.STRINGIFY PARA VER OS DETALHES
+    const todasProps = Array.from(Memory.propriedades.values());
+    console.log(JSON.stringify(todasProps, null, 2));
+
+    console.log(`==============================`);
     console.log("------------------------------");
   }
 }

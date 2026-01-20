@@ -34,6 +34,9 @@ export class Player {
   }
   setPreso(a: boolean) {
     this.preso = a;
+    if (a) {
+        this.turnosPrisao = 0; // Reseta ao ser preso
+    }
   }
   adicionarPropriedade(id: number, propriedade: any) {
     this.propriedades.set(id, propriedade);
