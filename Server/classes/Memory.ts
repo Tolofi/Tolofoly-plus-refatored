@@ -1,6 +1,6 @@
 import { PropriedadeSorte } from "./PropriedadeSorte";
 import { PropriedadeCompanhia } from "./PropriedadeCompanhia";
-import { Player } from "./player";
+import { Player } from "./Player";
 import { Propriedade } from "./Propriedade";
 import { PropriedadeTaxa } from "./PropriedadeTaxa";
 import { PropriedadeEstacao } from "./PropriedadeEstacao";
