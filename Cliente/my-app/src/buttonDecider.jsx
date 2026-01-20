@@ -1,7 +1,9 @@
 import { socket } from "../socket";
+import { useGameStore } from "./store";
 
 export const getAvailableActions = (propriedade, username, isMyTurn) => {
   const actions = [];
+  const saldo = useGameStore((state) => state.meAsObject?.saldo || 0);
 
   // Segurança básica
   if (!propriedade || !propriedade.name) return [];
@@ -40,9 +42,17 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
 
     if (isSorte) {
       actions.push({
-        label: `Tentar a sorte`,
+        label: `✦ Sortear carta ✦`,
         variant: "success",
-        onClick: () => {
+        onClick: (e) => {
+          // --- LÓGICA DE TRAVAMENTO ---
+          // Verifica se o evento existe para evitar erros
+          if (e && e.currentTarget) {
+            e.currentTarget.disabled = true; // Desabilita o botão
+            e.currentTarget.style.opacity = "0.5"; // Dá feedback visual de desabilitado
+            e.currentTarget.innerText = "Carta gerada"; // (Opcional) Muda o texto
+            e.currentTarget.style.pointerEvents = "none"; // Garante que não receba mais cliques
+          }
           socket.emit("getMessage");
         },
       });
@@ -71,7 +81,6 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
     // PAGAR ALUGUEL (Se tem dono e não sou eu)
     if (!isDono && !semDono) {
       const nivel = propriedade.level || 0;
-      // Garante que rent é um array antes de acessar
       const valorAluguel =
         propriedade.rent && propriedade.rent[nivel]
           ? propriedade.rent[nivel]
@@ -80,8 +89,21 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
       actions.push({
         label: `Pagar Aluguel -> ${dono} (R$ ${valorAluguel})`,
         variant: "success",
-        onClick: () => {
+        // RECEBE O EVENTO 'e' AQUI
+        onClick: (e) => {
+          // --- LÓGICA DE TRAVAMENTO ---
+          // Verifica se o evento existe para evitar erros
+          if (e && e.currentTarget && saldo >= valorAluguel) {
+            console.log("dentro do if")
+            e.currentTarget.disabled = true; // Desabilita o botão
+            e.currentTarget.style.opacity = "0.5"; // Dá feedback visual de desabilitado
+            e.currentTarget.innerText = "Aluguel pago ✓"; // (Opcional) Muda o texto
+            e.currentTarget.style.pointerEvents = "none"; // Garante que não receba mais cliques
+          }
+
           if (propId === null) return alert("Erro: ID inválido");
+
+          // Emite o pagamento
           socket.emit("playerTransaction", dono, valorAluguel);
         },
       });

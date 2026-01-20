@@ -7,11 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "android": "npm run build && npx cap sync && npx cap run android"
   },
   "dependencies": {
+    "@boengli/capacitor-fullscreen": "^0.0.19",
     "@capacitor-mlkit/barcode-scanning": "^8.0.0",
     "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/screen-orientation": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
+    "@capgo/capacitor-navigation-bar": "^8.0.10",
     "framer-motion": "^12.23.26",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",

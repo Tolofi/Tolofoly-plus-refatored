@@ -1,18 +1,16 @@
 import { motion } from "framer-motion";
 
-export const MagicBoxModal = ({act, setQtd, val}) => {
+export const MagicBoxModal = ({ act, setQtd, val, isMove }) => {
   return (
     <>
-      {/* Overlay Escuro (Fundo) para focar no modal */}
       <motion.div
         className="magic-modal-overlay"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={act} // Fecha se clicar fora (opcional)
+        onClick={() => act()} // Fecha se clicar fora (opcional, sem argumentos)
       />
 
-      {/* O Modal (Card Branco) */}
       <motion.div
         className="magic-modal-container"
         initial={{ y: "-100vh", x: "-50%", opacity: 0 }}
@@ -31,9 +29,23 @@ export const MagicBoxModal = ({act, setQtd, val}) => {
           onChange={(e) => setQtd(Number(e.target.value))}
         />
 
-        <button className="magic-modal-btn" onClick={act}>
-          Confirmar
-        </button>
+        {isMove && (
+          <>
+            {/* CORREÇÃO AQUI: Usar () => act(true) */}
+            <button className="magic-modal-btn" onClick={() => act(true)}>
+              Andar pra frente
+            </button>
+            {/* CORREÇÃO AQUI: Usar () => act(false) */}
+            <button className="magic-modal-btn" onClick={() => act(false)}>
+              Andar pra trás
+            </button>
+          </>
+        )}
+        {!isMove && (
+          <button className="magic-modal-btn" onClick={() => act()}>
+            Confirmar
+          </button>
+        )}
       </motion.div>
     </>
   );

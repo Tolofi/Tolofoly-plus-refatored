@@ -2,6 +2,7 @@ import { Board } from "../components/Board";
 import { useGameStore } from "../store";
 import { socket } from "../../socket";
 import { useEffect, useState } from "react";
+import { ScreenOrientation } from "@capacitor/screen-orientation";
 
 export const AuxiliarScreen = () => {
   const [allPlayersList, setAllPlayersList] = useState([]);
@@ -22,6 +23,24 @@ export const AuxiliarScreen = () => {
   ];
 
   useEffect(() => {
+
+    const entrarNoModoJogo = async () => {
+      try {
+        // 1. Trava a rotação primeiro
+        await ScreenOrientation.lock({ orientation: 'landscape' });
+
+        // 2. Dê um pequeno tempo para o Android girar a tela (500ms é seguro)
+        // Isso impede que a barra volte durante a animação de giro
+        setTimeout(async () => {
+             await Fullscreen.activateImmersiveMode();
+        }, 500);
+
+      } catch (e) {
+        console.error("Erro ao entrar em modo jogo", e);
+      }
+    };
+
+    entrarNoModoJogo();
     // Solicita os dados iniciais do tabuleiro
     socket.emit("requestBoardData");
 
@@ -58,6 +77,9 @@ export const AuxiliarScreen = () => {
     return () => {
       socket.off("initProperties");
       socket.off("allPLayerObject");
+      // Volta para vertical (Portrait) ou destrava para girar livre
+      ScreenOrientation.lock({ orientation: 'portrait' });
+      Fullscreen.exitImmersiveMode();
     };
   }, []);
 

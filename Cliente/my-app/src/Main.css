@@ -31,6 +31,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding-top: env(safe-area-inset-top);
 }
 
 button:focus {

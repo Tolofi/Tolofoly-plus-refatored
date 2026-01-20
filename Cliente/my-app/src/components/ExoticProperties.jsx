@@ -1,4 +1,6 @@
 import { motion } from "framer-motion";
+import { useGameStore } from "../store";
+import { frasesEstacionamento, frasesImpostoRenda, frasesTaxaRiqueza } from "../FrasesEsperaCartasSorte";
 
 export const ExoticProperties = ({ propriedade, msg }) => {
 const isStart = propriedade.color === "Comeco";
@@ -7,7 +9,15 @@ const isStart = propriedade.color === "Comeco";
   const isPark = propriedade.color === "Estacionamento";
   const isLucky = propriedade.color === "Sorte";
   const isTax = propriedade.color === "Taxa";
-
+  const isRiqueza = propriedade.name === "Taxa De Riqueza";
+  const isImposto = propriedade.name === "Imposto de Renda";
+  const playerObject = useGameStore((state) => state.meAsObject);
+  const parkMessage = frasesEstacionamento;
+  const parkMessageIndex = Math.floor(Math.random() * frasesEstacionamento.length);
+  const riquezaMessage = frasesTaxaRiqueza;
+  const riquezaMessageIndex = Math.floor(Math.random() * frasesTaxaRiqueza.length);
+  const impostoMessage = frasesImpostoRenda;
+  const impostoMessageIndex = Math.floor(Math.random() * frasesImpostoRenda.length);
   
   return (
     <motion.div
@@ -36,8 +46,8 @@ const isStart = propriedade.color === "Comeco";
           <div className="special-card-svg">
             {isStart && <span className="SvgSub">Você está no começo.</span>}
             {isPrison && <span className="SvgSub">Você está preso.</span>}
-            {isGuest && <span className="SvgSub">Visitando um preso.</span>}
-            {isPark && <span className="SvgSub">Achou sua vaga?</span>}
+            {isGuest && <span className="SvgSub">{playerObject.preso ? "Foi preso" : "Visitando um preso"}</span>}
+            {isPark && <span className="SvgSub"></span>}
             {isLucky && (
               <span className="SvgSub">
                 {msg ? "" : "Que nome mais estranho para uma via."}
@@ -45,7 +55,7 @@ const isStart = propriedade.color === "Comeco";
             )}
             {isTax && (
                 <span className="SvgSub">
-                Faz o L.
+                {isRiqueza}
               </span>
             )}
           </div>
@@ -57,16 +67,15 @@ const isStart = propriedade.color === "Comeco";
               </span>
             )}
             {isGuest && (
-              <span>Fique tranquilo, o horário de visita já vai começar</span>
+              <span>{playerObject.preso ? "Eu não queria ser você" : "O horário de visita já vai começar"}</span>
             )}
             {isPark && (
               <span>
-                Fique tranquilo, uma rodada no estacionamento é grátis. Por
-                enquanto...
+                {parkMessage[parkMessageIndex]}
               </span>
             )}
-            {isLucky && <span>{msg ? msg : "Que nome mais estranho para uma via."}</span>}
-            {isTax && <span>Vou te ajudar a tirar o escorpião do bolso, então já me passa {propriedade.taxAmount === 1000 ? "milzão" : "duas mil doletas"}.</span>}
+            {isLucky && <span>{msg ? msg : "Aperta logo esse botão e vamo ver se você tem sorte."}</span>}
+            {isTax && <span>{isRiqueza && riquezaMessage[riquezaMessageIndex]}{isImposto && impostoMessage[impostoMessageIndex]}</span>}
             {isStart && <span>Respire um pouco e aproveite para refletir... Já tava esquecendo, toma seus dois mil!</span>}
           </div>
         </div>

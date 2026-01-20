@@ -20,12 +20,12 @@ export const Login = () => {
   const [mensagem, setMensagem] = useState("");
 
   const [ip, setIp] = useState(
-    localStorage.getItem("socketIp") ? localStorage.getItem("socketIp") : ""
+    localStorage.getItem("socketIp") ? localStorage.getItem("socketIp") : "",
   );
   const [porta, setPorta] = useState(
     localStorage.getItem("socketPorta")
       ? localStorage.getItem("socketPorta")
-      : ""
+      : "",
   );
 
   const [isIpSetting, setIsIpSetting] = useState(false);
@@ -107,6 +107,19 @@ export const Login = () => {
       setNome("");
     }
 
+    const init = async () => {
+      try {
+        await StatusBar.hide();
+        await NavigationBar.hide({
+          type: "immersiveSticky",
+        });
+      } catch (e) {
+        console.warn("Erro inicial fullscreen", e);
+      }
+    };
+
+    setTimeout(init, 1000);
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("registerSuccess", onRegisterSuccess);
@@ -126,10 +139,18 @@ export const Login = () => {
   return (
     <>
       <button
-        style={{ position: "fixed", left: "50%", bottom: "1%", transform: "translateX(-50%)", backgroundColor: "#820ad1"}}
+        style={{
+          position: "fixed",
+          left: "50%",
+          bottom: "1%",
+          transform: "translateX(-50%)",
+          backgroundColor: "#820ad1",
+          borderRadius: "20px",
+          color: "#fff",
+        }}
         onClick={() => navigate("/board")}
       >
-        M
+        Tabuleiro
       </button>
 
       <motion.div

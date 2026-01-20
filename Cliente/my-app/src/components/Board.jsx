@@ -1,16 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  motion,
-  LayoutGroup,
-  AnimatePresence,
-  useAnimation,
-} from "framer-motion";
+import React, { useState, useEffect } from "react";
+import { motion, LayoutGroup } from "framer-motion";
 
 // --- HELPERS ---
-
-// Converte ID da casa (0-39) para coordenadas X/Y no grid 11x11
 const getCoords = (id) => {
-  const shiftedId = (id + 5) % 40;
+  const numericId = Number(id);
+  const shiftedId = (numericId + 5) % 40;
+
   if (shiftedId >= 0 && shiftedId <= 10) return { x: 11 - shiftedId, y: 11 };
   if (shiftedId >= 11 && shiftedId <= 20)
     return { x: 1, y: 11 - (shiftedId - 10) };
@@ -18,276 +13,224 @@ const getCoords = (id) => {
     return { x: 1 + (shiftedId - 20), y: 1 };
   if (shiftedId >= 31 && shiftedId <= 39)
     return { x: 11, y: 1 + (shiftedId - 30) };
-  return { x: 6, y: 11 };
+  return { x: 11, y: 11 };
 };
 
-// Componente utilitário para animar números/textos mudando
-const AnimatedText = ({ children, className, customKey, style }) => (
-  <div
-    className={className}
-    style={{ position: "relative", overflow: "hidden", ...style }}
-  >
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={customKey || children}
-        initial={{ y: 8, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: -8, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
-  </div>
-);
+const getTileSideClass = (x, y) => {
+  if ((x === 1 || x === 11) && (y === 1 || y === 11)) return "tile-corner";
+  if (y === 11) return "tile-bottom";
+  if (x === 1) return "tile-left";
+  if (y === 1) return "tile-top";
+  if (x === 11) return "tile-right";
+  return "";
+};
 
-// --- COMPONENTE DO PEÃO SALTITANTE ---
-const GamePawn = ({ player, targetPos, indexNoGrupo, totalNoGrupo }) => {
+// --- PEÃO TRAVADO NO GRID (SEM CÁLCULO DE PIXEL) ---
+const JUMP_DURATION = 280;
+
+const GamePawn = ({ player, targetPos, playersOnSameSquare }) => {
   const [visualPos, setVisualPos] = useState(Number(player.posicao));
-  const controls = useAnimation();
-  const timeoutRef = useRef(null);
   const finalPos = Number(targetPos);
 
   useEffect(() => {
     if (visualPos === finalPos) return;
 
-    const proximoPasso = (visualPos + 1) % 40;
-    const velocidadePasso = 300;
+    // Pequeno delay para simular o "pulo" casa a casa
+    const timer = setTimeout(() => {
+      setVisualPos((prev) => (prev + 1) % 40);
+    }, JUMP_DURATION);
 
-    controls.start({
-      scale: [1, 1.4, 1],
-      transition: { duration: 0.25, times: [0, 0.5, 1] },
-    });
+    return () => clearTimeout(timer);
+  }, [visualPos, finalPos]);
 
-    timeoutRef.current = setTimeout(() => {
-      setVisualPos(proximoPasso);
-    }, velocidadePasso);
+  // Pegamos a coordenada exata do Grid (Coluna 1-11, Linha 1-11)
+  const { x, y } = getCoords(visualPos);
 
-    return () => clearTimeout(timeoutRef.current);
-  }, [visualPos, finalPos, controls]);
+  // Offset visual apenas para quando tiver vários jogadores na mesma casa
+  // (Isso usa pixels, mas é só um ajuste fino relativo ao centro, não quebra o layout)
+  const myIndex = playersOnSameSquare.findIndex((p) => p.id === player.id);
+  const total = playersOnSameSquare.length;
 
-  const coords = getCoords(visualPos);
-  const offsetBase = 8;
-  const totalWidth = (totalNoGrupo - 1) * offsetBase;
-  const startX = -totalWidth / 2;
-  const offsetX = startX + indexNoGrupo * offsetBase;
-  const offsetY = indexNoGrupo % 2 === 0 ? 0 : 5;
+  const offsetX = total > 1 ? (myIndex - (total - 1) / 2) * 14 : 0;
+  const offsetY = total > 1 ? (myIndex % 2 === 0 ? -10 : 10) : 0;
 
   return (
     <motion.div
-      layout
-      animate={controls}
+      layout // A MÁGICA: O Framer anima automaticamente a troca de gridColumn/gridRow
       className="pawn"
       style={{
-        gridColumn: coords.x,
-        gridRow: coords.y,
-        justifySelf: "center",
-        alignSelf: "center",
-        background: player.color,
-        width: "16px",
-        height: "16px",
-        borderRadius: "50%",
-        border: "2px solid white",
-        boxShadow: "0 4px 6px rgba(0,0,0,0.4)",
-        zIndex: 100 + indexNoGrupo,
+        backgroundColor: player.color,
+        zIndex: 100 + myIndex,
+        // AQUI ESTÁ A CORREÇÃO:
+        // Dizemos ao Grid exatamente onde colocar o peão
+        gridColumn: x,
+        gridRow: y,
+      }}
+      // Animamos apenas o offset (deslocamento para não sobrepor peões)
+      animate={{
         x: offsetX,
         y: offsetY,
+        scale: [1, 1.25, 1],
       }}
       transition={{
-        layout: {
-          type: "spring",
-          stiffness: 180,
-          damping: 12,
-          mass: 0.8,
-        },
+        // Configuração suave da animação
+        layout: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 },
+        x: { duration: 0.3 },
+        y: { duration: 0.3 },
       }}
     />
   );
 };
 
-// --- COMPONENTE PRINCIPAL (BOARD) ---
-
+// --- BOARD PRINCIPAL ---
 export const Board = ({ propriedadesServidor, jogadores }) => {
+  const [isTvMode, setIsTvMode] = useState(true);
+
+  // REMOVIDO: Não precisamos mais calcular tileDims ou ouvir resize da janela! \o/
+
   const propsArray = Array.isArray(propriedadesServidor)
     ? propriedadesServidor
     : Object.values(propriedadesServidor || {});
 
-  const propriedadesMercado = propsArray.filter((p) => p.price || p.valor);
-
-  const meioJogadores = Math.ceil(jogadores.length / 2);
-  const colJogadores1 = jogadores.slice(0, meioJogadores);
-  const colJogadores2 = jogadores.slice(meioJogadores);
-
-  const meioProps = Math.ceil(propriedadesMercado.length / 2);
-  const colProps1 = propriedadesMercado.slice(0, meioProps);
-  const colProps2 = propriedadesMercado.slice(meioProps);
-
-  // Sub-componente: Coluna de Jogadores
-  const PlayerColumn = ({ lista }) => (
-    <div className="sidebar-column">
-      {lista.map((player) => {
-        const propsPessoais = Object.values(player.propriedades || {}).length;
-        const casaAtual = propsArray.find(
-          (p) => Number(p.id) === Number(player.posicao)
-        );
-        const corCasa = casaAtual?.themeColor || casaAtual?.color || "#808080";
-
-        return (
-          <motion.div
-            key={player.id}
-            layout
-            className="player-card"
-            style={{ borderLeft: `5px solid ${player.color}` }}
-          >
-            <div className="player-header">
-              <div className="player-name">
-                {player.nome || player.username}
-              </div>
-              <AnimatedText className="player-money">
-                R$ {player.money || 0}
-              </AnimatedText>
-            </div>
-            <div className="player-header" style={{ marginTop: "8px" }}>
-              <div
-                className="location-badge"
-                style={{ borderColor: `${corCasa}44` }}
-              >
-                <motion.div
-                  className="location-dot"
-                  animate={{
-                    backgroundColor: corCasa,
-                    boxShadow: `0 0 10px ${corCasa}`,
-                  }}
-                />
-                <AnimatedText className="location-text">
-                  {casaAtual?.name || "Viajando..."}
-                </AnimatedText>
-              </div>
-              <span className="prop-count">{propsPessoais}/30</span>
-            </div>
-          </motion.div>
-        );
-      })}
-    </div>
-  );
-
-  // Sub-componente: Coluna de Propriedades (ATUALIZADO: Sem preço, com casas)
-  const PropertyColumn = ({ lista }) => (
-    <div className="sidebar-column market-column">
-      {lista.map((prop) => {
-        const dono = jogadores.find((j) =>
-          Object.values(j.propriedades || {}).some(
-            (p) => Number(p.id) === Number(prop.id)
-          )
-        );
-
-        // Pega a cor
-        const cor = prop.themeColor || prop.color || "#888";
-
-        return (
-          <div
-            key={prop.id}
-            className="prop-row-item"
-            style={{
-              // O gradiente vai da cor com 40% opacidade até quase transparente
-              // Isso garante que a cor domine, mas o texto continue legível
-              background: `linear-gradient(90deg, ${cor}55 0%, ${cor}15 100%)`,
-              borderLeft: `4px solid ${cor}`,
-            }}
-          >
-            {/* GRUPO ESQUERDA: Nome (Removemos o quadradinho de cor) */}
-            <div className="prop-left-group">
-              <span className="prop-row-name">{prop.name || prop.nome}</span>
-            </div>
-
-            {/* GRUPO DIREITA: Casas e Dono */}
-            <div className="prop-row-details">
-              <span className="prop-row-houses">🏠 {prop.houses || 0}</span>
-
-              <div
-                className="prop-row-owner"
-                style={{
-                  // Se tiver dono, usa a cor do dono Sólida.
-                  // Se for livre, fundo escuro semitransparente
-                  backgroundColor: dono ? dono.color : "rgba(0,0,0,0.5)",
-                  color: "white",
-                  opacity: dono ? 1 : 0.7,
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
-                }}
-              >
-                {dono ? (dono.nome || dono.username).substring(0, 4) : "LIVRE"}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-
-  if (propsArray.length === 0)
-    return <div className="loading">Carregando Tabuleiro...</div>;
+  if (propsArray.length === 0) return <div>Carregando...</div>;
 
   return (
     <div className="game-container">
-      {/* LADO ESQUERDO: LISTA DE JOGADORES */}
-      <PlayerColumn lista={colJogadores1} />
-      <PlayerColumn lista={colJogadores2} />
+      <LayoutGroup>
+        <motion.div
+          className={`board-grid ${isTvMode ? "mode-tv" : "mode-tabletop"}`}
+          layout
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {/* HUD CENTRAL */}
+          <div className="board-center">
+            <motion.div layout className="player-container">
+              {jogadores.map((p) => (
+                <motion.div
+                  layout
+                  key={p.id}
+                  className="player-card"
+                  style={{ borderLeftColor: p.color }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <div className="player-name">{p.nome || p.username}</div>
+                  <div className="player-money">R$ {p.money}</div>
+                </motion.div>
+              ))}
+            </motion.div>
 
-      {/* CENTRO: TABULEIRO */}
-      <div className="board-grid" style={{ position: "relative" }}>
-        {/* CAMADA 1: Casas do Tabuleiro */}
-        {propsArray.map((prop) => {
-          const { x, y } = getCoords(prop.id);
-          const cor = prop.themeColor || prop.color || "#ccc";
-          const temPreco = prop.price || prop.valor;
-
-          return (
-            <div
-              key={prop.id}
-              className="tile"
-              style={{
-                gridColumn: x,
-                gridRow: y,
-                border: `2px solid ${cor}`,
-              }}
-            >
-              <div className="tile-strip" style={{ background: cor }} />
-              <span className="tile-name">{prop.name || prop.nome}</span>
-
-              {/* NOVO: Preço sutil no tabuleiro */}
-              {temPreco && (
-                <span className="tile-price">
-                  R$ {prop.price || prop.valor}
-                </span>
-              )}
+            <div className="hud-controls">
+              <motion.button
+                className="btn-perspective"
+                onClick={() => setIsTvMode(!isTvMode)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {isTvMode ? "📺 Modo TV" : "🎲 Modo Mesa"}
+              </motion.button>
             </div>
-          );
-        })}
+          </div>
 
-        {/* CAMADA 2: Peões */}
-        {jogadores.map((player) => {
-          const jogadoresNaMesmaCasa = jogadores.filter(
-            (p) => Number(p.posicao) === Number(player.posicao)
-          );
-          const indexNoGrupo = jogadoresNaMesmaCasa.findIndex(
-            (p) => p.id === player.id
-          );
+          {/* CASAS DO TABULEIRO */}
+          {propsArray.map((prop) => {
+            const { x, y } = getCoords(prop.id);
+            const sideClass = getTileSideClass(x, y);
+            const cor = prop.themeColor || prop.color || "#ccc";
+            const isCorner = (x === 1 || x === 11) && (y === 1 || y === 11);
+            const dono = jogadores.find((j) =>
+              Object.values(j.propriedades || {}).some(
+                (p) => Number(p.id) === Number(prop.id),
+              ),
+            );
 
-          return (
-            <GamePawn
-              key={player.id}
-              player={player}
-              targetPos={player.posicao}
-              indexNoGrupo={indexNoGrupo}
-              totalNoGrupo={jogadoresNaMesmaCasa.length}
-            />
-          );
-        })}
-      </div>
+            let rotation = 0;
+            if (!isTvMode) {
+              if (sideClass === "tile-top") rotation = 180;
+              if (sideClass === "tile-left") rotation = 90;
+              if (sideClass === "tile-right") rotation = -90;
+            }
 
-      {/* LADO DIREITO: LISTA DE PROPRIEDADES */}
-      <PropertyColumn lista={colProps1} />
-      <PropertyColumn lista={colProps2} />
+            const tileStyle = { gridColumn: x, gridRow: y };
+            if (dono) {
+              tileStyle["--owner-color"] = dono.color;
+            }
+
+            return (
+              <div
+                key={prop.id}
+                className={`tile ${sideClass} ${dono ? "owned" : ""}`}
+                style={tileStyle}
+              >
+                {!isCorner && (
+                  <div
+                    className="tile-strip"
+                    style={{ backgroundColor: cor }}
+                  />
+                )}
+
+                <motion.div
+                  className="tile-content-wrapper"
+                  animate={{ rotate: rotation }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <div className="tile-name">
+                    {prop.name}
+                    {prop.level > 0 && (
+                      <span
+                        style={{
+                          fontWeight: 900,
+                          color: "green",
+                          display: "block",
+                          fontSize: "1.5rem",
+                          zIndex: 1,
+                        }}
+                      >
+                        {"🏠︎".repeat(prop.level)}
+                      </span>
+                    )}
+                  </div>
+
+                  {!dono && !isCorner && (prop.price || prop.valor) && (
+                    <div className="tile-price">
+                      R$ {prop.price || prop.valor}
+                    </div>
+                  )}
+
+                  {/* LÓGICA DAS BOLINHAS */}
+                  {prop.houses > 0 && !isCorner && (
+                    <div className="house-container">
+                      {prop.houses === 5 ? (
+                        <div className="house-dot house-red" />
+                      ) : (
+                        Array.from({ length: prop.houses }).map((_, i) => (
+                          <div key={i} className="house-dot house-green" />
+                        ))
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              </div>
+            );
+          })}
+
+          {/* PEÕES (AGORA COMO ITENS DO GRID) */}
+          {jogadores.map((player) => {
+            const playersOnSameTarget = jogadores.filter(
+              (p) => Number(p.posicao) === Number(player.posicao),
+            );
+            return (
+              <GamePawn
+                key={player.id}
+                player={player}
+                targetPos={player.posicao}
+                playersOnSameSquare={playersOnSameTarget}
+                // Não precisamos mais passar tileWidth ou tileHeight!
+              />
+            );
+          })}
+        </motion.div>
+      </LayoutGroup>
     </div>
   );
 };

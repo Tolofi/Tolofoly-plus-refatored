@@ -17,6 +17,7 @@ import { TransferModal } from "../components/TransferModal";
 import { HistoryModal } from "../components/HistoryModal";
 import { PropertiesModal } from "../components/PropertiesModal";
 import { SellPropertyModal } from "../components/SellPropertyModal";
+import { ConfirmationModal } from "../components/ConfirmationModal";
 
 export const MainPage = () => {
   const navigate = useNavigate();
@@ -40,6 +41,7 @@ export const MainPage = () => {
   const [bankAnimation, setBankAnimation] = useState(null);
   const [notification, setNotification] = useState("");
   const [luckyMessage, setLuckyMessage] = useState(false);
+  const [isMessageRead, setIsMessageRead] = useState(true);
 
   // Modais e Controles
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,6 +49,12 @@ export const MainPage = () => {
   const [modalQtd, setModalQtd] = useState(0);
   const [isMagicBoxOpen, setIsMagicBoxOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // CONFIGURAÇÃO DO MODAL DE CONFIRMAÇÃO (Multifuncional)
+  const [isConfirmationModalOpened, setIsConfirmationModalOpened] =
+    useState(false);
+  const [confirmationActionType, setConfirmationActionType] = useState(""); // 'finish' ou 'leave'
+  const [isMove, setIsMove] = useState(false);
 
   // ESTADOS DE ERRO E CONEXÃO
   const [isRegisterFail, setIsRegisterFail] = useState(false);
@@ -70,7 +78,7 @@ export const MainPage = () => {
   const prisonMessageIndex = Math.floor(Math.random() * frasesPrisao.length);
   const availablePlayers = allPlayersList.filter((name) => name !== username);
 
-  // --- FUNÇÕES ---
+  // --- FUNÇÕES GERAIS ---
 
   function openMagicBoxModal(variant) {
     if (variant === "transfer") {
@@ -78,33 +86,73 @@ export const MainPage = () => {
       setIsMagicBoxOpen(false);
       return;
     }
+    if (variant === "move") {
+      setIsMove(true);
+    }
     setModalVariant(variant);
     setIsModalOpen(true);
   }
 
-  function rollFakeDices() {
-    setFakeDice({
-      d1: rolarUmDado(),
-      d2: rolarUmDado(),
-    });
+  function tentarSoltar() {
+    setIsProcessing(true);
+    const d1 = rolarUmDado();
+    const d2 = rolarUmDado();
+    setFakeDice({ d1, d2 });
     setIsDiceRequired(true);
+  }
 
+  function finalizarTentativa() {
+    setIsDiceRequired(false);
+    if (fakeDice) {
+      socket.emit("tentativaPrisao", { d1: fakeDice.d1, d2: fakeDice.d2 });
+    }
+  }
+
+  function rollFakeDices(dices) {
+    if (!dices) {
+      setFakeDice({ d1: rolarUmDado(), d2: rolarUmDado() });
+    }
+    if (dices) {
+      setFakeDice({ d1: dices.d1, d2: dices.d2 });
+    }
+    setIsDiceRequired(true);
     setTimeout(() => {
       setIsDiceRequired(false);
     }, 5000);
   }
 
-  function closeAndSendModal() {
+  function closeAndSendModal(isForward) {
+    // Mudei o nome do parâmetro para ficar claro
     setIsProcessing(true);
-    modalVariant === "move" && socket.emit("moveByPlayer", modalQtd);
-    modalVariant === "getMoney" && bankMoneyRequest();
+
+    // LÓGICA DE MOVIMENTO
+    if (modalVariant === "move") {
+      setIsMessageRead(true);
+
+      // Verifica explicitamente se é true (frente) ou false (trás)
+      if (isForward === true) {
+        socket.emit("moveByPlayer", modalQtd);
+      } else {
+        // Se for false, multiplica por -1 para andar para trás
+        socket.emit("moveByPlayer", modalQtd * -1);
+      }
+    }
+
+    // LÓGICA DE DINHEIRO
+    else if (modalVariant === "removeMoney") {
+      socket.emit("bankPayment", modalQtd);
+    } else if (modalVariant === "getMoney") {
+      bankMoneyRequest();
+    }
+
+    // LIMPEZA DE ESTADO
     setIsModalOpen(false);
     setIsMagicBoxOpen(false);
     setModalQtd(0);
+    setIsMove(false);
   }
 
   function handleTransfer() {
-    console.log(`Enviando ${transferAmount} para ${transferTarget}`);
     setIsProcessing(true);
     socket.emit("playerTransaction", transferTarget, transferAmount);
     setIsTransferOpen(false);
@@ -115,24 +163,53 @@ export const MainPage = () => {
 
   function bankMoneyRequest() {
     socket.emit("getMoneyByPlayer", modalQtd);
-    setBankAnimation({ source: `Pagamento`, value: modalQtd })
+    setBankAnimation({ source: `Pagamento`, value: modalQtd });
   }
-  
-  function finishTurn() {
+
+  // ===============================================
+  // LÓGICA DE TURNOS E CONFIRMAÇÕES (AQUI ESTÁ A CORREÇÃO)
+  // ===============================================
+
+  // 1. Função que executa o fim do turno imediatamente (Socket)
+  function handlePassTurn() {
     socket.emit("finishTurn");
     useGameStore.getState().setIsMyTurn(false);
     useGameStore.getState().setTurnPhase("WAITING");
     setIsProcessing(false);
+    setIsMessageRead(true);
+  }
+
+  // 2. Abre o modal e define o TIPO da ação ('finish' ou 'leave')
+  function openConfirmationModal(type) {
+    setConfirmationActionType(type);
+    setIsConfirmationModalOpened(true);
+  }
+
+  // 3. Executado quando o usuário clica SIM/NÃO no modal
+  function handleConfirmationDecision(status) {
+    if (status) {
+      // Se confirmou e o tipo é 'finish' (Terminar vez após jogar)
+      if (confirmationActionType === "finish") {
+        handlePassTurn();
+      }
+
+      // Se confirmou e o tipo é 'leave' (Sair do jogo)
+      if (confirmationActionType === "leave") {
+        socket.emit("leaveGame");
+        localStorage.removeItem("monopoly_username");
+        navigate("/");
+      }
+    }
+
+    // Fecha modal e limpa tipo
+    setIsConfirmationModalOpened(false);
+    setConfirmationActionType("");
   }
 
   function rolarDados() {
     if (isProcessing) return;
     setIsProcessing(true);
     socket.emit("rollDice");
-  }
-
-  function teste() {
-    socket.emit("testDice");
   }
 
   function rolarUmDado() {
@@ -146,7 +223,6 @@ export const MainPage = () => {
   // --- SOCKET LISTENERS ---
   useEffect(() => {
     socket.connect();
-
     const initialStateUsername = useGameStore.getState().username;
     if (initialStateUsername) {
       localStorage.setItem("monopoly_username", initialStateUsername);
@@ -154,7 +230,6 @@ export const MainPage = () => {
 
     const savedUsername = localStorage.getItem("monopoly_username");
     if (savedUsername && !initialStateUsername) {
-      console.log("🔄 Tentando reconectar usuário:", savedUsername);
       socket.emit("reconnectPlayer", savedUsername);
     } else {
       socket.emit("sync_game");
@@ -165,22 +240,17 @@ export const MainPage = () => {
     };
 
     // --- HANDLERS ---
-
-    // 1. MONITOR DE CONEXÃO
     function onDisconnect() {
-      console.warn("⚠️ Desconectado do servidor!");
       setIsConnected(false);
       unlockUI();
     }
 
     function onConnectError() {
-      console.warn("⚠️ Erro de conexão (Servidor offline?)");
       setIsConnected(false);
       unlockUI();
     }
 
     function onConnect() {
-      console.log("🟢 Conectado ao servidor!");
       setIsConnected(true);
       const savedUser = localStorage.getItem("monopoly_username");
       if (savedUser) socket.emit("reconnectPlayer", savedUser);
@@ -200,13 +270,8 @@ export const MainPage = () => {
         store.setTurnPhase("WAITING");
         store.setIsMyTurn(false);
       } else {
-        // --- CORREÇÃO DO RESET DE TURNO ---
-        // Só atualizamos o estado SE nós achávamos que não era a nossa vez.
-        // Se isMyTurn já for true, significa que já estamos a jogar (talvez em DECIDING),
-        // então NÃO tocamos em nada para evitar resetar para ROLLING.
         if (!store.isMyTurn) {
           store.setIsMyTurn(true);
-          // Se entramos no turno agora, aí sim vamos para ROLLING
           if (store.turnPhase === "WAITING") {
             store.setTurnPhase("ROLLING");
           }
@@ -219,7 +284,6 @@ export const MainPage = () => {
       store.setIsMyTurn(true);
       setIsProcessing(false);
 
-      // Esse evento é específico e seguro, vindo do backend com o estado real do dado
       if (data && data.hasRolled) {
         store.setDice(data.lastValue || 0);
         store.setTurnPhase("DECIDING");
@@ -232,14 +296,12 @@ export const MainPage = () => {
     function onJailled(data) {
       const msg = data?.message || "Você continua preso.";
       onNotification(msg);
-      console.log("Você esta preso.");
-      // 1. NÃO mude para 'DECIDING'. Isso evitará que os botões apareçam.
-      // Mantenha o estado atual ou mude para algo bloqueado se tiver.
-
-      // 2. Aguarda 3 segundos para o jogador ler a mensagem e ver o dado
-      setTimeout(() => {
-        finishTurn(); // Encerra o turno automaticamente
-      }, 3000);
+      // Se falhou na tentativa (via socket), encerra turno automático (sem modal)
+      if (data?.autoFinish) {
+        setTimeout(() => {
+          handlePassTurn();
+        }, 2500);
+      }
     }
 
     function onRegisterFail() {
@@ -328,6 +390,7 @@ export const MainPage = () => {
 
     function onDiceRolled(data) {
       unlockUI();
+      setIsMessageRead(true);
       useGameStore.getState().setDice(data);
     }
 
@@ -336,6 +399,7 @@ export const MainPage = () => {
     }
 
     function onAiMessage(data) {
+      data && setIsMessageRead(false);
       data ? setLuckyMessage(data) : setLuckyMessage("Algo deu errado.");
     }
 
@@ -358,7 +422,7 @@ export const MainPage = () => {
       const idDaPropAtual = store.currentProperty?.id;
       if (idDaPropAtual !== undefined) {
         const propAtualizada = todasPropriedades.find(
-          (p) => p.id === idDaPropAtual
+          (p) => p.id === idDaPropAtual,
         );
         if (propAtualizada) {
           store.setCurrentProperty(propAtualizada);
@@ -464,6 +528,14 @@ export const MainPage = () => {
         )}
       </AnimatePresence>
       <AnimatePresence>
+        {isConfirmationModalOpened && (
+          <ConfirmationModal
+            close={() => setIsConfirmationModalOpened(false)}
+            act={handleConfirmationDecision}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
         {isTransferOpen && (
           <TransferModal
             close={() => setIsTransferOpen(false)}
@@ -504,35 +576,38 @@ export const MainPage = () => {
             act={closeAndSendModal}
             setQtd={setModalQtd}
             val={modalQtd}
+            isMove={isMove}
           />
         )}
       </AnimatePresence>
 
-      {paymentAnimation && (
-        <TransactionMachine
-          destinatario={paymentAnimation.name}
-          valor={paymentAnimation.price.toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          })}
-          type={paymentAnimation.type}
-          isBank={false}
-          onComplete={() => setPaymentAnimation(null)}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {paymentAnimation && (
+          <TransactionMachine
+            destinatario={paymentAnimation.name}
+            valor={paymentAnimation.price.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            })}
+            type={paymentAnimation.type}
+            isBank={false}
+            onComplete={() => setPaymentAnimation(null)}
+          />
+        )}
 
-      {bankAnimation && (
-        <TransactionMachine
-          destinatario={bankAnimation.source}
-          valor={bankAnimation.value.toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          })}
-          type="transfer" // banco SEMPRE é transferência
-          isBank={true}
-          onComplete={() => setBankAnimation(null)}
-        />
-      )}
+        {bankAnimation && (
+          <TransactionMachine
+            destinatario={bankAnimation.source}
+            valor={bankAnimation.value.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            })}
+            type="transfer"
+            isBank={true}
+            onComplete={() => setBankAnimation(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <motion.div
         initial={{ x: "100vw" }}
@@ -581,7 +656,7 @@ export const MainPage = () => {
                   >
                     <CurrentProperty
                       propriedade={propriedade}
-                      msg={luckyMessage}
+                      msg={isMessageRead ? false : luckyMessage}
                     />
                   </motion.div>
 
@@ -609,21 +684,11 @@ export const MainPage = () => {
                   >
                     <ActionButtons
                       actions={actions}
-                      passTurn={finishTurn}
+                      // AQUI: Abre o modal para confirmar (Terminar turno pós-jogada)
+                      passTurn={() => openConfirmationModal("finish")}
                       onAction={() => setIsProcessing(true)}
                     />
                   </motion.div>
-
-                  {/* {<motion.button
-                    variants={{
-                      hidden: { opacity: 0 },
-                      visible: { opacity: 1 },
-                    }}
-                    onClick={teste}
-                    className="btn-teste"
-                  >
-                    Testar dice
-                  </motion.button>} */}
                 </motion.div>
               )}
             </motion.div>
@@ -636,50 +701,54 @@ export const MainPage = () => {
               exit={{ opacity: 0 }}
             >
               <div className="waiting-turn-title">
-                {/* Muda o título se estiver preso */}
                 {playerObject.preso
-                  ? "🔒 Você está Detido"
+                  ? `🔒 Você está Detido (${playerObject.turnosPrisao || 0}/3)`
                   : "Aguardando sua vez..."}
               </div>
 
               <div className="waiting-message">
-                {/* Se NÃO estiver preso, mostra frases aleatórias */}
                 {!playerObject.preso && waitingMessage[waitingMessageIndex]}
-
-                {/* Se ESTIVER preso, mostra mensagem fixa */}
                 {playerObject.preso && prisonMessage[prisonMessageIndex]}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <AnimatePresence>
-          {turnPhase == "ROLLING" && (
-            <RolarDados
-              click={rolarDados}
-              serverTotal={dice}
-              onComplete={handleDiceComplete}
-            />
-          )}
-        </AnimatePresence>
-
         <AnimatePresence mode="wait">
-          {isDiceRequired && (
+          {isDiceRequired ? (
             <RolarDados
-              d1={fakeDice.d1}
-              d2={fakeDice.d2}
-              serverTotal={fakeDice.d1 + fakeDice.d2}
-              onComplete={() => {}}
+              key="fake-dice"
+              d1={fakeDice?.d1}
+              d2={fakeDice?.d2}
+              serverTotal={0}
+              onComplete={finalizarTentativa}
             />
+          ) : (
+            turnPhase === "ROLLING" && (
+              <RolarDados
+                key="real-dice"
+                click={rolarDados}
+                serverTotal={dice}
+                // AQUI: Executa direto sem modal (Pular vez antes de jogar)
+                pularVez={handlePassTurn}
+                onComplete={handleDiceComplete}
+                tentarSoltar={tentarSoltar}
+                isProcessing={isProcessing}
+              />
+            )
           )}
+
           {isMagicBoxOpen && (
             <MagicBox
               key="magic-box"
               open={openMagicBoxModal}
               close={() => setIsMagicBoxOpen(false)}
               dices={rollFakeDices}
+              // AQUI: Abre modal para confirmar saída
+              onLeave={() => openConfirmationModal("leave")}
             />
           )}
+
           {!isMagicBoxOpen && !showFailModal && (
             <motion.button
               key="open-button"
@@ -708,7 +777,6 @@ export const MainPage = () => {
           {/* --- MODAL DE ERRO DE CONEXÃO --- */}
           {showFailModal && (
             <>
-              {/* Overlay Escuro para bloquear tudo */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -720,7 +788,7 @@ export const MainPage = () => {
                   width: "100%",
                   height: "100%",
                   backgroundColor: "rgba(0,0,0,0.5)",
-                  zIndex: 9998, // Logo abaixo do modal de erro
+                  zIndex: 9998,
                 }}
               />
 
@@ -740,7 +808,7 @@ export const MainPage = () => {
                   borderRadius: "15px",
                   boxShadow: "0 4px 25px rgba(0,0,0,0.3)",
                   textAlign: "center",
-                  zIndex: 9999, // <--- Z-INDEX INFINITO (ACIMA DE TUDO)
+                  zIndex: 9999,
                 }}
               >
                 <span

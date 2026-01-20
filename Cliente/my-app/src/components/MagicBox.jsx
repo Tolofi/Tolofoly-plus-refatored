@@ -1,9 +1,7 @@
 import { motion } from "framer-motion";
 import { socket } from "../../socket";
-import { useNavigate } from "react-router-dom";
 
-export const MagicBox = ({ open, close, dices }) => {
-  const navigate = useNavigate();
+export const MagicBox = ({ open, close, dices, onLeave }) => {
   function emitRollDice() {
     socket.emit("rollDiceByPlayer");
   }
@@ -42,23 +40,21 @@ export const MagicBox = ({ open, close, dices }) => {
         </button>
 
         <button
-          className="magic-btn full-width"
+          className="magic-btn "
           onClick={() => open("getMoney")}
         >
-          Pegar dinheiro com o banco
+          Pegar dinheiro
         </button>
         <button
           onClick={() => {
-            localStorage.removeItem("monopoly_username");
-            navigate("/");
+            open("removeMoney")
           }}
           className="magic-btn"
           style={{
-            background: "#ef4444",
             gridColumn: "span 1",
           }}
         >
-          Voltar ao login
+          Pagar ao banco
         </button>
         <button
           onClick={dices}
@@ -68,6 +64,15 @@ export const MagicBox = ({ open, close, dices }) => {
           }}
         >
           Revelar dados
+        </button>
+        <button
+          onClick={onLeave} // <--- AQUI MUDOU
+          className="magic-btn"
+          style={{
+            background: "#ef4444",
+          }}
+        >
+          Voltar ao login
         </button>
       </div>
     </motion.div>

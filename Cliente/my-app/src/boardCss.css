@@ -1,295 +1,305 @@
 /* =======================
-   RESET & FONTS
+   RESET & FUNDO
 ======================= */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Manrope", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Manrope", sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* =======================
-   CONTAINER PRINCIPAL
-======================= */
 .game-container {
-  display: flex;
   width: 100vw;
   height: 100vh;
-  background: #050505; /* Fundo bem escuro */
-  padding: 15px;
-  gap: 15px;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden; /* Evita scroll na página inteira */
+  background-color: #000;
+  display: flex;
+  overflow: hidden;
+  position: relative;
 }
 
 /* =======================
-   COLUNAS LATERAIS
-======================= */
-.sidebar-column {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 280px;
-  height: 95vh;
-}
-
-/* =======================
-   CARD DO JOGADOR
-======================= */
-.player-card {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 12px;
-  border-radius: 15px;
-  border-left: 5px solid; /* Cor do jogador definida no JSX */
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(5px);
-}
-
-.player-header {
-  display: flex;
-  width: 100%;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.player-name {
-  color: white;
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-.player-money {
-  color: #2ecc71;
-  font-weight: 900;
-  font-size: 1.1rem;
-}
-
-.prop-count {
-  font-weight: 700;
-  color: #aaa;
-  font-size: 0.8rem;
-}
-
-/* =======================
-   LOCALIZAÇÃO DO JOGADOR
-======================= */
-.location-badge {
-  margin-top: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  width: fit-content;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.location-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.location-text {
-  color: #eee;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* =======================
-   TABULEIRO (GRID)
+   GRID FULL SCREEN
 ======================= */
 .board-grid {
   display: grid;
   grid-template-columns: repeat(11, 1fr);
   grid-template-rows: repeat(11, 1fr);
-  width: 90vh; /* Quadrado responsivo à altura */
-  height: 90vh;
-  gap: 6px;
-  background: #0f0f0f;
-  padding: 10px;
-  border-radius: 24px;
-  flex-shrink: 0;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-}
-
-.tile {
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
   position: relative;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
-}
-
-.tile-strip {
-  width: 100%;
-  height: 10px; /* Faixa de cor no topo */
-}
-
-.tile-name {
-  font-size: 8px;
-  text-align: center;
-  font-weight: 900;
-  padding: 4px 2px 0 2px;
-  color: #1a1a1a;
-  text-transform: uppercase;
-  line-height: 1.1;
-  flex: 1; /* Ocupa espaço para empurrar o preço pra baixo */
-  display: flex;
-  align-items: center; /* Centraliza verticalmente o nome */
-  justify-content: center;
-}
-
-/* Estilo do Preço dentro do Tabuleiro */
-.tile-price {
-  font-size: 8px;
-  color: #555;
-  font-weight: 700;
-  margin-bottom: 4px; /* Espaço inferior */
-  background: rgba(0, 0, 0, 0.05);
-  padding: 1px 4px;
-  border-radius: 4px;
-}
-
-/* Container para os peões não quebrarem o layout da tile */
-.pawn-container {
-  position: absolute;
-  bottom: 6px;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
 }
 
 /* =======================
-   LISTA DE PROPRIEDADES
-   (Compacta & Colorida)
+   TILE (A CÉLULA)
 ======================= */
-.market-column {
+.tile {
+  background-color: #d4eec9;
+  position: relative; /* Necessário para o efeito zebrado */
+  overflow: hidden;
+  display: flex;
+  border: 1px solid #222;
+  box-sizing: border-box;
+
+  /* Variável para a cor do dono (usada nas listras diagonais) */
+  --owner-color: transparent;
+  transition: all 0.3s ease;
+}
+
+/* ESTADO: COMPRADO (OWNED) */
+.tile.owned {
+  background-color: #fff; /* Fundo branco para destacar as listras */
+}
+
+/* A FAIXA DE CONTENÇÃO (ZEBRADA) */
+/* Cria uma camada por cima do tile */
+.tile.owned::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1; /* Fica acima do fundo */
+  opacity: 0.4; /* Transparência para ler o texto */
+
+  /* Padrão de listras diagonais */
+  background-image: repeating-linear-gradient(
+    45deg,
+    #ffffff,
+    #ffffff 10px,
+    var(--owner-color) 10px,
+    var(--owner-color) 20px
+  );
+}
+
+/* =======================
+   POSICIONAMENTO DAS FAIXAS (STRIPS)
+   Empurra a faixa para a borda interna usando Flexbox Order
+======================= */
+.tile-strip {
+  flex-shrink: 0;
+  z-index: 2; /* Fica ACIMA das listras zebradas */
+}
+
+/* --- LADO DE BAIXO (Linha 11) --- */
+/* Faixa deve ficar no TOPO do quadrado (Borda interna) */
+.tile-bottom {
+  flex-direction: column;
+}
+.tile-bottom .tile-strip {
+  height: 20%;
+  width: 100%;
+  order: -1; /* Joga para o começo (Topo) */
+}
+
+/* --- LADO DE CIMA (Linha 1) --- */
+/* Faixa deve ficar em BAIXO do quadrado (Borda interna) */
+.tile-top {
+  flex-direction: column;
+}
+.tile-top .tile-strip {
+  height: 20%;
+  width: 100%;
+  order: 2; /* Joga para o final (Baixo) */
+}
+
+/* --- LADO ESQUERDO (Coluna 1) --- */
+/* Faixa deve ficar na DIREITA do quadrado (Borda interna) */
+.tile-left {
+  flex-direction: row;
+}
+.tile-left .tile-strip {
+  width: 15%;
+  height: 100%;
+  order: 2; /* Joga para o final (Direita) */
+}
+
+/* --- LADO DIREITO (Coluna 11) --- */
+/* Faixa deve ficar na ESQUERDA do quadrado (Borda interna) */
+.tile-right {
+  flex-direction: row;
+}
+.tile-right .tile-strip {
+  width: 15%;
+  height: 100%;
+  order: -1; /* Joga para o começo (Esquerda) */
+}
+
+/* CANTOS */
+.tile-corner {
+  justify-content: center;
+  align-items: center;
+  background: #fff;
+}
+
+/* =======================
+   CONTEÚDO DE TEXTO (WRAPPER)
+======================= */
+.tile-content-wrapper {
+  flex: 1; /* Ocupa o espaço que sobra fora da faixa */
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  /* Fundo sutil para a coluna inteira */
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 15px;
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  height: 95vh;
-
-  /* Scrollbar */
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-/* Customização da barra de rolagem */
-.market-column::-webkit-scrollbar {
-  width: 4px;
-}
-.market-column::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-}
-.market-column::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-}
-.market-column::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
-}
-
-/* Item da Lista (O Card Colorido) */
-.prop-row-item {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
   align-items: center;
-  padding: 6px 12px;
+  justify-content: center;
+  padding: 4px;
+  width: 100%;
+  height: 100%;
+  z-index: 2; /* Texto fica ACIMA das listras zebradas */
+  /* transition removido pois o Framer Motion cuida disso no JS */
+}
 
-  /* Borda arredondada suave */
-  border-radius: 6px;
+.tile-name {
+  font-weight: 600;
+  color: #111;
+  text-transform: uppercase;
+  font-size: 0.6rem;
 
-  /* Altura fixa para uniformidade */
-  min-height: 38px;
+  /* Tamanho dinâmico para telas grandes */
+  @media (min-width: 1700px) {
+    font-size: 0.8rem;
+  }
 
-  /* Efeitos de transição */
-  transition: all 0.2s ease;
+  text-align: center;
+  line-height: 1.1;
+  max-width: 100%;
+}
+
+.tile-price {
+  font-weight: 700;
+  color: #666;
+  font-size: 0.6rem;
+  margin-top: 2px;
+  background-color: gainsboro;
+  border-radius: 20px;
+  padding: 5px 10px;
+}
+
+/* =======================
+   MODOS DE ROTAÇÃO (TV vs MESA)
+======================= */
+
+/* MODO TV (Padrão): Tudo reto (0 graus) */
+.mode-tv .tile-content-wrapper {
+  transform: rotate(0deg) !important;
+}
+
+/* MODO MESA (Clássico): Vira para o jogador */
+.mode-tabletop .tile-top .tile-content-wrapper {
+  transform: rotate(180deg);
+}
+.mode-tabletop .tile-left .tile-content-wrapper {
+  transform: rotate(90deg);
+}
+.mode-tabletop .tile-right .tile-content-wrapper {
+  transform: rotate(-90deg);
+}
+.mode-tabletop .tile-bottom .tile-content-wrapper {
+  transform: rotate(0deg);
+}
+
+/* =======================
+   CENTRO (HUD)
+======================= */
+.board-center {
+  grid-column: 2 / 11;
+  grid-row: 2 / 11;
+  background-color: #151515;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   position: relative;
-
-  /* NOTA: O 'background' e 'border-left' vêm inline do React 
-     para combinar com a cor da propriedade */
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9);
 }
 
-.prop-row-item:hover {
-  filter: brightness(1.2); /* Fica mais brilhante ao passar o mouse */
-  transform: translateX(2px); /* Move levemente para direita */
-  z-index: 10;
+.center-logo {
+  color: rgba(255, 255, 255, 0.05);
+  font-size: 4vw;
+  font-weight: 900;
+  letter-spacing: 10px;
+  position: absolute;
+  z-index: 0;
+  user-select: none;
 }
 
-/* Grupo Esquerda: Nome */
-.prop-left-group {
+.hud-controls {
+  position: absolute;
+  bottom: 20px;
+  z-index: 20;
+}
+
+.btn-perspective {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1; /* Ocupa todo espaço sobrando */
-  overflow: hidden;
+}
+.btn-perspective:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
-.prop-row-name {
-  color: #ffffff;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  /* Sombra essencial para ler texto branco em fundos claros (amarelo/ciano) */
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
-  letter-spacing: 0.5px;
-}
-
-/* Grupo Direita: Detalhes */
-.prop-row-details {
+.player-container {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  gap: 30px;
+  z-index: 10;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
-.prop-row-houses {
-  font-size: 0.75rem;
+.player-card {
+  background: rgba(40, 40, 40, 0.9);
+  padding: 20px 30px;
+  border-radius: 16px;
+  border-left: 10px solid #ccc;
+  min-width: 200px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+}
+.player-name {
   color: #fff;
-  display: flex;
-  align-items: center;
-  font-weight: 700;
-  gap: 4px;
-  /* Sombra forte para ícone e texto */
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+.player-money {
+  color: #2ecc71;
+  font-size: 1.8rem;
+  font-weight: 900;
 }
 
-.prop-row-owner {
-  font-size: 0.65rem;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-weight: 800;
-  text-transform: uppercase;
+/* =======================
+   PEÕES
+======================= */
+.pawn-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+}
 
-  min-width: 45px;
-  max-width: 60px;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* PEÃO */
+.pawn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
 
-  /* Borda sutil para separar do fundo colorido */
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  /* MUDANÇA CRUCIAL: Removemos position: absolute */
+  /* position: absolute;  <-- APAGUE ISSO SE TIVER */
+
+  /* Isso centraliza o peão automaticamente dentro da célula do Grid */
+  place-self: center;
+
+  pointer-events: none;
 }

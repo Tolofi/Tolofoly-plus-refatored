@@ -38,15 +38,6 @@ socket.on("propertiesUpdate", (properties) => {
   }
 });
 
-socket.on("allPlayersUpdate", (players) => {
-  const store = useGameStore.getState();
-  if (store.updatePlayersArray) {
-    store.updatePlayersArray(players);
-  } else if (store.setPlayers) {
-    store.setPlayers(players);
-  }
-})
-
 socket.on("historyIncrement", (item) => {
   useGameStore.getState().addHistoryItem(item);
 });

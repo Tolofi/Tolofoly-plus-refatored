@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, useAnimate } from "framer-motion"; // Certifique-se de que está instalado
+import { motion, useAnimate } from "framer-motion";
 import "../css/transactionMachine.css";
 
 export const TransactionMachine = ({
@@ -13,45 +13,53 @@ export const TransactionMachine = ({
   const [showSuccess, setShowSuccess] = useState(false);
   const [scope, animate] = useAnimate();
 
-  const typeWriter = async (text) => {
-    setDisplayText("");
-    for (let i = 0; i <= text.length; i++) {
-      setDisplayText(text.slice(0, i));
-      await new Promise((r) => setTimeout(r, 30));
-    }
-    await new Promise((r) => setTimeout(r, 400));
-  };
-
   useEffect(() => {
+    // 1. Variável de controle para cancelar animações se o componente desmontar
+    let isMounted = true;
+
+    const typeWriter = async (text) => {
+      if (!isMounted) return;
+
+      setDisplayText("");
+
+      for (let i = 0; i <= text.length; i++) {
+        if (!isMounted) return; // Checagem a cada letra
+        setDisplayText(text.slice(0, i));
+        await new Promise((r) => setTimeout(r, 30));
+      }
+
+      if (!isMounted) return;
+      await new Promise((r) => setTimeout(r, 400));
+    };
+
     const runSequence = async () => {
       setShowSuccess(false);
       setDisplayText("");
 
       await new Promise((r) => setTimeout(r, 600));
+      if (!isMounted) return;
 
-      // 1. Lógica do Texto (Prefixo)
+      // --- 1. Escreve Destinatário ---
       let prefixo = "";
       if (isBank) {
-        prefixo = ""; // Se for banco (Venda), não escreve nada antes
+        prefixo = "";
       } else {
         prefixo = type === "purchase" ? "Adquirindo:" : "Para:";
       }
-
-      // Se tiver prefixo, adiciona espaço. Se não, mostra só o destinatário.
       const textoFinal = prefixo ? `${prefixo} ${destinatario}` : destinatario;
 
       await typeWriter(textoFinal);
+      if (!isMounted) return;
 
       setDisplayText("");
       await new Promise((r) => setTimeout(r, 100));
+      if (!isMounted) return;
 
-      // 2. Digita Valor
+      // --- 2. Escreve Valor ---
       await typeWriter(`${valor}`);
+      if (!isMounted) return;
 
-      // 3. Animação do Cartão
-      // LÓGICA DE DIREÇÃO:
-      // Se for BANCO: Começa na direita (250) e vai pra esquerda (-300)
-      // Se for NORMAL: Começa na esquerda (-250) e vai pra direita (300)
+      // --- 3. Animação do Cartão ---
       const startX = isBank ? 250 : -250;
       const endX = isBank ? -300 : 300;
 
@@ -60,18 +68,20 @@ export const TransactionMachine = ({
         {
           x: [startX, endX],
           opacity: [0, 1, 1, 0],
-          // Inverte a rotação se for banco para parecer natural vindo do outro lado
           rotate: isBank ? [0, -5, 5, 0] : [0, 5, -5, 0],
         },
         { duration: 1.0, ease: "easeInOut" }
       );
 
-      // 4. Sucesso (Muda cor da tela)
+      if (!isMounted) return;
+
+      // --- 4. Tela de Sucesso ---
       setDisplayText("");
       setShowSuccess(true);
 
       const successColor = type === "purchase" ? "#8b5cf6" : "#10b981";
-      await animate(
+
+      animate(
         ".pos-screen",
         { backgroundColor: successColor, borderColor: successColor },
         { duration: 0.2 }
@@ -79,22 +89,44 @@ export const TransactionMachine = ({
 
       await new Promise((r) => setTimeout(r, 1200));
 
+      if (!isMounted) return;
       if (onComplete) onComplete();
     };
 
     runSequence();
+
+    // Cleanup: Mata o processo se o componente sair da tela antes de acabar
+    return () => {
+      isMounted = false;
+    };
   }, [destinatario, valor, type, isBank, animate, onComplete]);
 
   return (
-    // WRAPPER PARA CENTRALIZAR E FIXAR NA TELA
     <div className="transaction-overlay">
       <motion.div
         className="pos-container"
         ref={scope}
+        // Entra pela Esquerda
         initial={{ x: "-100vw", rotate: -45, opacity: 0 }}
+        // Fica no Centro
         animate={{ x: 0, rotate: 0, opacity: 1 }}
+        // Sai pela Direita
         exit={{ x: "100vw", rotate: 45, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 70, damping: 14 }}
+
+        // CONFIGURAÇÃO DE TRANSIÇÃO MISTA
+        transition={{
+          // Padrão (Movimento): Mola elástica
+          type: "spring",
+          stiffness: 70,
+          damping: 14,
+
+          // Específico (Opacidade): Suave e linear para não piscar
+          opacity: {
+            type: "tween",
+            ease: "easeInOut",
+            duration: 0.5,
+          },
+        }}
       >
         {/* CARTÃO */}
         <motion.div
@@ -102,10 +134,8 @@ export const TransactionMachine = ({
           initial={{ x: isBank ? 250 : -250, opacity: 0 }}
         >
           <div className="card-chip"></div>
-
-          {/* Lógica do Texto no Cartão */}
           {isBank ? (
-            <div className="bank-label">Foly Bank</div> // <--- MUDANÇA AQUI
+            <div className="bank-label">Foly Bank</div>
           ) : (
             <div className="card-logo"></div>
           )}
@@ -116,7 +146,10 @@ export const TransactionMachine = ({
           <div className="pos-screen">
             {!showSuccess ? (
               <>
-                <span style={{ zIndex: 2 }}>{displayText}</span>
+                {/* Fonte Monospace para evitar trepidação */}
+                <span style={{ zIndex: 2, fontFamily: "monospace", fontWeight: "bold" }}>
+                  {displayText}
+                </span>
                 <span className="screen-cursor">|</span>
               </>
             ) : (
@@ -132,7 +165,7 @@ export const TransactionMachine = ({
                 }}
               >
                 {type === "transfer" ? (
-                  // Ícone de Check (Venda/Recebimento)
+                  // Ícone de Check
                   <svg
                     width="50"
                     height="50"
@@ -146,7 +179,7 @@ export const TransactionMachine = ({
                     <path d="M15 26L22 33L35 18" />
                   </svg>
                 ) : (
-                  // Ícone de Venda/Sacola (Compra)
+                  // Ícone de Venda/Sacola
                   <div style={{ textAlign: "center" }}>
                     <svg
                       width="40"
