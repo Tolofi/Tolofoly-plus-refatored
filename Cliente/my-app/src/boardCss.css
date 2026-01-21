@@ -73,6 +73,7 @@
     var(--owner-color) 10px,
     var(--owner-color) 20px
   );
+  background-color: var(--owner-color);
 }
 
 /* =======================
@@ -155,7 +156,8 @@
   font-weight: 600;
   color: #111;
   text-transform: uppercase;
-  font-size: 0.6rem;
+  font-size: 0.8rem; /* padrão: 0.6rem */
+  word-break: normal;
 
   /* Tamanho dinâmico para telas grandes */
   @media (min-width: 1700px) {
@@ -289,8 +291,8 @@
 
 /* PEÃO */
 .pawn {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   border: 2px solid white;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);

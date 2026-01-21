@@ -25,7 +25,7 @@ const getTileSideClass = (x, y) => {
   return "";
 };
 
-// --- PEÃO TRAVADO NO GRID (SEM CÁLCULO DE PIXEL) ---
+// --- PEÃO TRAVADO NO GRID ---
 const JUMP_DURATION = 280;
 
 const GamePawn = ({ player, targetPos, playersOnSameSquare }) => {
@@ -35,7 +35,6 @@ const GamePawn = ({ player, targetPos, playersOnSameSquare }) => {
   useEffect(() => {
     if (visualPos === finalPos) return;
 
-    // Pequeno delay para simular o "pulo" casa a casa
     const timer = setTimeout(() => {
       setVisualPos((prev) => (prev + 1) % 40);
     }, JUMP_DURATION);
@@ -43,11 +42,7 @@ const GamePawn = ({ player, targetPos, playersOnSameSquare }) => {
     return () => clearTimeout(timer);
   }, [visualPos, finalPos]);
 
-  // Pegamos a coordenada exata do Grid (Coluna 1-11, Linha 1-11)
   const { x, y } = getCoords(visualPos);
-
-  // Offset visual apenas para quando tiver vários jogadores na mesma casa
-  // (Isso usa pixels, mas é só um ajuste fino relativo ao centro, não quebra o layout)
   const myIndex = playersOnSameSquare.findIndex((p) => p.id === player.id);
   const total = playersOnSameSquare.length;
 
@@ -56,24 +51,20 @@ const GamePawn = ({ player, targetPos, playersOnSameSquare }) => {
 
   return (
     <motion.div
-      layout // A MÁGICA: O Framer anima automaticamente a troca de gridColumn/gridRow
+      layout
       className="pawn"
       style={{
         backgroundColor: player.color,
         zIndex: 100 + myIndex,
-        // AQUI ESTÁ A CORREÇÃO:
-        // Dizemos ao Grid exatamente onde colocar o peão
         gridColumn: x,
         gridRow: y,
       }}
-      // Animamos apenas o offset (deslocamento para não sobrepor peões)
       animate={{
         x: offsetX,
         y: offsetY,
         scale: [1, 1.25, 1],
       }}
       transition={{
-        // Configuração suave da animação
         layout: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 },
         x: { duration: 0.3 },
         y: { duration: 0.3 },
@@ -85,8 +76,6 @@ const GamePawn = ({ player, targetPos, playersOnSameSquare }) => {
 // --- BOARD PRINCIPAL ---
 export const Board = ({ propriedadesServidor, jogadores }) => {
   const [isTvMode, setIsTvMode] = useState(true);
-
-  // REMOVIDO: Não precisamos mais calcular tileDims ou ouvir resize da janela! \o/
 
   const propsArray = Array.isArray(propriedadesServidor)
     ? propriedadesServidor
@@ -114,7 +103,7 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
-                  <div className="player-name">{p.nome || p.username}</div>
+                  <div className="player-name" style={{ color: p.color}}>{p.nome || p.username}</div>
                   <div className="player-money">R$ {p.money}</div>
                 </motion.div>
               ))}
@@ -138,11 +127,33 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
             const sideClass = getTileSideClass(x, y);
             const cor = prop.themeColor || prop.color || "#ccc";
             const isCorner = (x === 1 || x === 11) && (y === 1 || y === 11);
+
+            // 1. Acha o dono (Igual você já fazia)
             const dono = jogadores.find((j) =>
               Object.values(j.propriedades || {}).some(
-                (p) => Number(p.id) === Number(prop.id),
-              ),
+                (p) => Number(p.id) === Number(prop.id)
+              )
             );
+
+            // 2. CORREÇÃO: Define o nível olhando para o dono (se existir)
+            let nivelAtual = prop.level || 0; // Padrão do tabuleiro
+            let casasAtuais = prop.houses || 0;
+
+            if (dono) {
+              // Pega o objeto da propriedade que está DENTRO do jogador
+              const propDoDono = Object.values(dono.propriedades).find(
+                (p) => Number(p.id) === Number(prop.id)
+              );
+
+              if (propDoDono) {
+                // Se o jogador tiver essa informação, usamos ela prioritariamente
+                if (propDoDono.level !== undefined)
+                  nivelAtual = propDoDono.level;
+                // Alguns backends usam 'houses' ao invés de level, garantindo ambos:
+                if (propDoDono.houses !== undefined)
+                  casasAtuais = propDoDono.houses;
+              }
+            }
 
             let rotation = 0;
             if (!isTvMode) {
@@ -176,17 +187,18 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                 >
                   <div className="tile-name">
                     {prop.name}
-                    {prop.level > 0 && (
+                    {/* AQUI ESTAVA O ERRO: Usamos 'nivelAtual' ao invés de 'prop.level' */}
+                    {nivelAtual > 0 && (
                       <span
                         style={{
                           fontWeight: 900,
                           color: "green",
                           display: "block",
-                          fontSize: "1.5rem",
+                          fontSize: "1.2rem",
                           zIndex: 1,
                         }}
                       >
-                        {"🏠︎".repeat(prop.level)}
+                        {"⌂".repeat(nivelAtual)}
                       </span>
                     )}
                   </div>
@@ -197,13 +209,13 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                     </div>
                   )}
 
-                  {/* LÓGICA DAS BOLINHAS */}
-                  {prop.houses > 0 && !isCorner && (
+                  {/* LÓGICA DAS BOLINHAS (Também atualizada para usar casasAtuais se quiser) */}
+                  {casasAtuais > 0 && !isCorner && (
                     <div className="house-container">
-                      {prop.houses === 5 ? (
+                      {casasAtuais === 5 ? (
                         <div className="house-dot house-red" />
                       ) : (
-                        Array.from({ length: prop.houses }).map((_, i) => (
+                        Array.from({ length: casasAtuais }).map((_, i) => (
                           <div key={i} className="house-dot house-green" />
                         ))
                       )}
@@ -214,10 +226,10 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
             );
           })}
 
-          {/* PEÕES (AGORA COMO ITENS DO GRID) */}
+          {/* PEÕES */}
           {jogadores.map((player) => {
             const playersOnSameTarget = jogadores.filter(
-              (p) => Number(p.posicao) === Number(player.posicao),
+              (p) => Number(p.posicao) === Number(player.posicao)
             );
             return (
               <GamePawn
@@ -225,7 +237,6 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                 player={player}
                 targetPos={player.posicao}
                 playersOnSameSquare={playersOnSameTarget}
-                // Não precisamos mais passar tileWidth ou tileHeight!
               />
             );
           })}
