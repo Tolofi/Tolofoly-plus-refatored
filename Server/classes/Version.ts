@@ -1,0 +1,1 @@
+export const gameVersion = "1.0";

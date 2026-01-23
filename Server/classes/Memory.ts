@@ -74,15 +74,15 @@ export class Memory {
       // 4. Cria o novo registro no mapa reverso
       this.playerBySocketId.set(newSocketId, username);
 
-      console.log(
-        `Socket atualizado para ${username}: ${oldSocketId} -> ${newSocketId}`
-      );
+      // console.log(
+      //   `Socket atualizado para ${username}: ${oldSocketId} -> ${newSocketId}`
+      // );
     }
   }
 
   static initializeProperties(): void {
     if (this.isPropertyInitialized) {
-      console.log("Propriedades já inicializadas.");
+      // console.log("Propriedades já inicializadas.");
       return;
     }
 
@@ -330,15 +330,15 @@ export class Memory {
 
     // --- DEBUG PARA VOCÊ CONFERIR NO TERMINAL DO SERVIDOR ---
     // --- DEBUG PARA VOCÊ CONFERIR NO TERMINAL DO SERVIDOR ---
-    console.log("--- TABULEIRO INICIALIZADO ---");
-    console.log(`Total: ${Memory.propriedades.size} propriedades`);
-    console.log(`==============================`);
+    // console.log("--- TABULEIRO INICIALIZADO ---");
+    // console.log(`Total: ${Memory.propriedades.size} propriedades`);
+    // console.log(`==============================`);
 
     // USANDO JSON.STRINGIFY PARA VER OS DETALHES
     const todasProps = Array.from(Memory.propriedades.values());
-    console.log(JSON.stringify(todasProps, null, 2));
+    // console.log(JSON.stringify(todasProps, null, 2));
 
-    console.log(`==============================`);
-    console.log("------------------------------");
+    // console.log(`==============================`);
+    // console.log("------------------------------");
   }
 }
