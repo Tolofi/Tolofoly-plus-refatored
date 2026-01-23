@@ -5,7 +5,7 @@
   --bg-app: #f0f2f5;
   --bg-card: #ffffff;
   --primary: #820ad1; /* Roxo Nubank */
-  --primary-hover: #6a08a8;
+  --primary-hover: #020203;
   --secondary: #03d37b; /* Verde Sucesso/Online */
   --text-main: #111827;
   --text-muted: #6b7280;
@@ -140,9 +140,6 @@ button:focus {
   font-weight: 700;
   cursor: pointer;
   transition: background-color 0.2s;
-}
-.btn-enter:hover {
-  background-color: var(--primary-hover);
 }
 
 .pronto {

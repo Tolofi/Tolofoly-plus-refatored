@@ -1,9 +1,6 @@
 import { motion } from "framer-motion";
 
-export const HistoryModal = ({
-  close,
-  actions = [], // Array de ações (strings do histórico)
-}) => {
+export const HistoryModal = ({ close, actions = [] }) => {
   return (
     <>
       {/* Overlay escuro */}
@@ -30,13 +27,15 @@ export const HistoryModal = ({
           style={{
             width: "100%",
             textAlign: "left",
-            maxHeight: "300px", // Limita a altura para não estourar a tela
-            overflowY: "auto", // Adiciona barra de rolagem se necessário
+            maxHeight: "300px",
+            overflowY: "auto",
             marginBottom: "20px",
-            paddingRight: "5px", // Espaço para a scrollbar não colar no texto
+            paddingRight: "5px",
             border: "1px solid #e5e7eb",
             borderRadius: "8px",
             background: "#f9fafb",
+            // Dica visual: Adicionar sombra interna ajuda a ver que tem rolagem
+            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.05)",
           }}
         >
           {actions.length === 0 ? (
@@ -46,20 +45,39 @@ export const HistoryModal = ({
               Nenhuma ação registrada ainda.
             </div>
           ) : (
-            actions.map((acao, index) => (
+            // 🔥 AQUI ESTÁ A MUDANÇA:
+            // [...actions] cria uma cópia para não alterar o original
+            // .reverse() inverte a ordem (o último vira o primeiro)
+            [...actions].reverse().map((acao, index) => (
               <div
-                key={index}
+                key={index} // Nota: O ideal seria um ID único, mas index serve se a lista não mudar muito
                 style={{
                   padding: "10px 12px",
                   borderBottom: "1px solid #e5e7eb",
                   fontSize: "14px",
                   color: "#374151",
                   fontWeight: "600",
-                  // Destaque visual zebrado (opcional)
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
                   backgroundColor:
                     index % 2 === 0 ? "transparent" : "rgba(0,0,0,0.02)",
                 }}
               >
+                {/* Dica: Um indicador visual para o item mais recente (o primeiro da lista) */}
+                {index === 0 && (
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      background: "#10b981",
+                      color: "white",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    NOVO
+                  </span>
+                )}
                 {acao}
               </div>
             ))

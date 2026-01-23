@@ -4,8 +4,10 @@ import { Login } from "./pages/Login";
 import { Wait } from "./pages/Wait";
 import { MainPage } from "./pages/MainPage";
 import { AuxiliarScreen } from "./pages/Auxiliar";
+import { Outdated } from "./pages/Outdated";
 import "./Main.css";
 import "./boardCss.css";
+import "./leilao.css"
 
 import { useEffect } from "react";
 import { socket } from "../socket";
@@ -16,6 +18,7 @@ import { Capacitor } from "@capacitor/core";
 import { Fullscreen } from "@boengli/capacitor-fullscreen";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { App as CapacitorApp } from "@capacitor/app";
+import { Leilao } from "./pages/Leilao";
 
 const RotasAnimadas = () => {
   const location = useLocation();
@@ -29,6 +32,8 @@ const RotasAnimadas = () => {
         <Route path="/wait" element={<Wait />} />
         <Route path="/main" element={<MainPage />} />
         <Route path="/board" element={<AuxiliarScreen />} />
+        <Route path="/outdated" element={<Outdated />} />
+        <Route path="/leilao" element={<Leilao />} />
       </Routes>
     </AnimatePresence>
   );

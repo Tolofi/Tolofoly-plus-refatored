@@ -51,7 +51,7 @@ export const SellPropertyModal = ({
           background: "white",
           borderRadius: "20px",
           padding: "20px",
-          zIndex: 201, // Maior que PropertiesModal (101) e overlay (200)
+          zIndex: 999, // Maior que PropertiesModal (101) e overlay (200)
           height: "auto",
           display: "flex",
           flexDirection: "column",

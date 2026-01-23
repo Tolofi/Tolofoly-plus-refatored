@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store";
@@ -18,6 +18,8 @@ import { HistoryModal } from "../components/HistoryModal";
 import { PropertiesModal } from "../components/PropertiesModal";
 import { SellPropertyModal } from "../components/SellPropertyModal";
 import { ConfirmationModal } from "../components/ConfirmationModal";
+import { Card } from "../components/Card";
+import { FloatingReceipt } from "../components/Recibo";
 
 export const MainPage = () => {
   const navigate = useNavigate();
@@ -36,6 +38,13 @@ export const MainPage = () => {
   const [allPlayersList, setAllPlayersList] = useState([]);
   const [isDiceRequired, setIsDiceRequired] = useState(false);
 
+  // useRef para manter o valor atualizado dentro do Socket
+  const transferTargetRef = useRef("");
+
+  useEffect(() => {
+    transferTargetRef.current = transferTarget;
+  }, [transferTarget]);
+
   // Animações e Notificações
   const [paymentAnimation, setPaymentAnimation] = useState(null);
   const [bankAnimation, setBankAnimation] = useState(null);
@@ -49,14 +58,24 @@ export const MainPage = () => {
   const [modalQtd, setModalQtd] = useState(0);
   const [isMagicBoxOpen, setIsMagicBoxOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [cardShow, setCardShow] = useState({
+    status: false,
+    valor: null,
+    destinatario: null,
+    remetente: null,
+  });
+  const [reciboShow, setReciboShow] = useState({
+    status: false,
+    valor: null,
+    destinatario: null,
+    remetente: null,
+  });
 
-  // CONFIGURAÇÃO DO MODAL DE CONFIRMAÇÃO (Multifuncional)
   const [isConfirmationModalOpened, setIsConfirmationModalOpened] =
     useState(false);
-  const [confirmationActionType, setConfirmationActionType] = useState(""); // 'finish' ou 'leave'
+  const [confirmationActionType, setConfirmationActionType] = useState("");
   const [isMove, setIsMove] = useState(false);
 
-  // ESTADOS DE ERRO E CONEXÃO
   const [isRegisterFail, setIsRegisterFail] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
 
@@ -82,6 +101,7 @@ export const MainPage = () => {
 
   function openMagicBoxModal(variant) {
     if (variant === "transfer") {
+      setTransferTarget("");
       setIsTransferOpen(true);
       setIsMagicBoxOpen(false);
       return;
@@ -122,30 +142,21 @@ export const MainPage = () => {
   }
 
   function closeAndSendModal(isForward) {
-    // Mudei o nome do parâmetro para ficar claro
     setIsProcessing(true);
 
-    // LÓGICA DE MOVIMENTO
     if (modalVariant === "move") {
-      setIsMessageRead(true);
-
-      // Verifica explicitamente se é true (frente) ou false (trás)
+      modalQtd % 5 === 0 ? setIsMessageRead(false) : setIsMessageRead(true);
       if (isForward === true) {
         socket.emit("moveByPlayer", modalQtd);
       } else {
-        // Se for false, multiplica por -1 para andar para trás
         socket.emit("moveByPlayer", modalQtd * -1);
       }
-    }
-
-    // LÓGICA DE DINHEIRO
-    else if (modalVariant === "removeMoney") {
+    } else if (modalVariant === "removeMoney") {
       socket.emit("bankPayment", modalQtd);
     } else if (modalVariant === "getMoney") {
       bankMoneyRequest();
     }
 
-    // LIMPEZA DE ESTADO
     setIsModalOpen(false);
     setIsMagicBoxOpen(false);
     setModalQtd(0);
@@ -157,20 +168,19 @@ export const MainPage = () => {
     socket.emit("playerTransaction", transferTarget, transferAmount);
     setIsTransferOpen(false);
     setTransferAmount(0);
-    setTransferTarget("");
     setIsMagicBoxOpen(false);
   }
 
   function bankMoneyRequest() {
     socket.emit("getMoneyByPlayer", modalQtd);
-    setBankAnimation({ source: `Pagamento`, value: modalQtd });
+    setReciboShow({
+      status: true,
+      valor: modalQtd,
+      destinatario: username,
+      remetente: "Banco",
+    });
   }
 
-  // ===============================================
-  // LÓGICA DE TURNOS E CONFIRMAÇÕES (AQUI ESTÁ A CORREÇÃO)
-  // ===============================================
-
-  // 1. Função que executa o fim do turno imediatamente (Socket)
   function handlePassTurn() {
     socket.emit("finishTurn");
     useGameStore.getState().setIsMyTurn(false);
@@ -179,29 +189,22 @@ export const MainPage = () => {
     setIsMessageRead(true);
   }
 
-  // 2. Abre o modal e define o TIPO da ação ('finish' ou 'leave')
   function openConfirmationModal(type) {
     setConfirmationActionType(type);
     setIsConfirmationModalOpened(true);
   }
 
-  // 3. Executado quando o usuário clica SIM/NÃO no modal
   function handleConfirmationDecision(status) {
     if (status) {
-      // Se confirmou e o tipo é 'finish' (Terminar vez após jogar)
       if (confirmationActionType === "finish") {
         handlePassTurn();
       }
-
-      // Se confirmou e o tipo é 'leave' (Sair do jogo)
       if (confirmationActionType === "leave") {
         socket.emit("leaveGame");
         localStorage.removeItem("monopoly_username");
         navigate("/");
       }
     }
-
-    // Fecha modal e limpa tipo
     setIsConfirmationModalOpened(false);
     setConfirmationActionType("");
   }
@@ -239,7 +242,6 @@ export const MainPage = () => {
       setIsProcessing(false);
     };
 
-    // --- HANDLERS ---
     function onDisconnect() {
       setIsConnected(false);
       unlockUI();
@@ -296,11 +298,10 @@ export const MainPage = () => {
     function onJailled(data) {
       const msg = data?.message || "Você continua preso.";
       onNotification(msg);
-      // Se falhou na tentativa (via socket), encerra turno automático (sem modal)
       if (data?.autoFinish) {
         setTimeout(() => {
           handlePassTurn();
-        }, 2500);
+        }, 3000);
       }
     }
 
@@ -308,6 +309,15 @@ export const MainPage = () => {
       setIsRegisterFail(true);
       localStorage.removeItem("monopoly_username");
       unlockUI();
+    }
+
+    function onLeilaoGanho(data) {
+      setReciboShow({
+        status: true,
+        valor: data,
+        destinatario: "Leilão",
+        remetente: username,
+      });
     }
 
     function onReconnectSuccess(playerData) {
@@ -341,7 +351,12 @@ export const MainPage = () => {
 
     function onBegginingPoint(data) {
       data.status
-        ? setBankAnimation({ source: `Ponto de Partida`, value: 2000 })
+        ? setReciboShow({
+            status: true,
+            valor: 2000,
+            destinatario: username,
+            remetente: "Banco",
+          })
         : onNotification(data.message);
     }
 
@@ -351,29 +366,55 @@ export const MainPage = () => {
 
     function onBankPaymentResult(data) {
       unlockUI();
-      data.status
-        ? setPaymentAnimation({ name: "Banco", price: data.valor })
-        : onNotification(data.message);
+      const currentUser =
+        useGameStore.getState().username ||
+        localStorage.getItem("monopoly_username");
+
+      if (data.status) {
+        setCardShow({
+          status: true,
+          remetente: currentUser,
+          destinatario: "Banco",
+          valor: data.valor,
+        });
+      } else {
+        onNotification(data.message);
+      }
     }
 
     function onBuyPropertyResult(data) {
       unlockUI();
       const storeState = useGameStore.getState();
       const propAtual = storeState.currentProperty;
-      if (data.status === true)
-        setPaymentAnimation({
-          name: propAtual?.name || "Propriedade",
-          price: propAtual?.price || 0,
-          type: "purchase",
+      const currentUser =
+        storeState.username || localStorage.getItem("monopoly_username");
+
+      if (data.status === true) {
+        setCardShow({
+          status: true,
+          remetente: currentUser,
+          destinatario: "Banco",
+          valor: propAtual.preco || propAtual.price,
         });
+      }
+    }
+
+    function onShowReceipt(data) {
+      setReciboShow({
+        status: true,
+        destinatario: data.destinatario,
+        valor: data.valor,
+      });
     }
 
     function onSoldToBank(data) {
       unlockUI();
       if (!data) return;
-      setBankAnimation({
-        source: `Venda: ${data.propriedade}`,
-        value: data.valor,
+      setReciboShow({
+        status: true,
+        valor: data.valor,
+        destinatario: username,
+        remetente: "Banco",
       });
     }
 
@@ -386,6 +427,11 @@ export const MainPage = () => {
       setNotification(msg || "Ocorreu um erro");
       setTimeout(() => setNotification(""), 4000);
       unlockUI();
+    }
+
+    // --- CORREÇÃO AQUI: PASSANDO DADOS VIA STATE ---
+    function onLeilaoAnuncio(data) {
+      navigate("/leilao", { state: data });
     }
 
     function onDiceRolled(data) {
@@ -403,15 +449,30 @@ export const MainPage = () => {
       data ? setLuckyMessage(data) : setLuckyMessage("Algo deu errado.");
     }
 
-    function onPlayerTrasactionResult(data) {
+    function onPlayerTransactionResult(data) {
       unlockUI();
+      const currentUser =
+        useGameStore.getState().username ||
+        localStorage.getItem("monopoly_username");
+
       if (data && data.status) {
-        setPaymentAnimation({
-          name: data.msgDe[0],
-          price: data.msgDe[1],
-          type: "transfer",
+        const valorTransacao = data.msgDe[1];
+        setCardShow({
+          status: true,
+          remetente: currentUser,
+          destinatario: transferTargetRef.current || "Jogador",
+          valor: valorTransacao,
         });
       }
+    }
+
+    function onTransactionReceipt(data) {
+      setReciboShow({
+        status: true,
+        valor: data.valor,
+        destinatario: data.destinatario || "Banco",
+        remetente: data.remetente,
+      });
     }
 
     function onPropertiesUpdate(todasPropriedades) {
@@ -439,6 +500,8 @@ export const MainPage = () => {
 
     socket.off("connect");
     socket.off("disconnect");
+    socket.off("leilaoGanho");
+    socket.off("leilaoAnuncio");
     socket.off("connect_error");
     socket.off("reconnectSuccess");
     socket.off("registerSuccess");
@@ -461,9 +524,12 @@ export const MainPage = () => {
     socket.off("playerTrasactionResult");
     socket.off("Jailled");
     socket.off("propertyTransactionResult");
+    socket.off("transactionReceipt");
 
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
+    socket.on("leilaoGanho", onLeilaoGanho);
+    socket.on("leilaoAnuncio", onLeilaoAnuncio);
     socket.on("connect_error", onConnectError);
     socket.on("reconnectSuccess", onReconnectSuccess);
     socket.on("registerSuccess", onRegisterSuccess);
@@ -483,13 +549,16 @@ export const MainPage = () => {
     socket.on("yourTurn", onYourTurn);
     socket.on("currentRoundData", onCurrentRoundData);
     socket.on("turn_update", onTurnUpdate);
-    socket.on("playerTrasactionResult", onPlayerTrasactionResult);
+    socket.on("playerTrasactionResult", onPlayerTransactionResult);
     socket.on("Jailled", onJailled);
     socket.on("propertyTransactionResult", onGenericUnlock);
+    socket.on("transactionReceipt", onTransactionReceipt);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
+      socket.off("leilaoGanho", onLeilaoGanho);
+      socket.off("leilaoAnuncio", onLeilaoAnuncio);
       socket.off("connect_error", onConnectError);
       socket.off("reconnectSuccess", onReconnectSuccess);
       socket.off("registerSuccess", onRegisterSuccess);
@@ -501,6 +570,7 @@ export const MainPage = () => {
       socket.off("playerUpdate", onPlayerUpdate);
       socket.off("notification", onNotification);
       socket.off("error", onError);
+      socket.off("transactionReceipt", onTransactionReceipt);
       socket.off("soldToBank", onSoldToBank);
       socket.off("propertiesUpdate", onPropertiesUpdate);
       socket.off("buyPropertyResult", onBuyPropertyResult);
@@ -509,7 +579,7 @@ export const MainPage = () => {
       socket.off("currentRoundData", onCurrentRoundData);
       socket.off("turn_update", onTurnUpdate);
       socket.off("aiMessage", onAiMessage);
-      socket.off("playerTrasactionResult", onPlayerTrasactionResult);
+      socket.off("playerTrasactionResult", onPlayerTransactionResult);
       socket.off("Jailled", onJailled);
       socket.off("propertyTransactionResult", onGenericUnlock);
     };
@@ -517,8 +587,65 @@ export const MainPage = () => {
 
   const showFailModal = isRegisterFail || !isConnected;
 
+  // --- PROTEÇÃO DE CARREGAMENTO PARA EVITAR TELA BRANCA ---
+  if (!playerObject) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          backgroundColor: "#111827",
+          color: "#ffffff",
+        }}
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ loop: Infinity, duration: 1 }}
+          style={{
+            borderTop: "2px solid #fbbf24",
+            borderRadius: "50%",
+            width: 40,
+            height: 40,
+          }}
+        />
+        <span style={{ marginLeft: 15 }}>Sincronizando Jogo...</span>
+      </div>
+    );
+  }
+
   return (
     <>
+      <AnimatePresence mode="wait">
+        {cardShow.status && (
+          <Card
+            onThrow={() => {
+              console.log("chamar animação no tabuleiro");
+              setCardShow((prev) => ({ ...prev, status: false }));
+              socket.emit("cardThrowed", {
+                valor: cardShow.valor,
+                remetente: cardShow.remetente,
+                destinatario: cardShow.destinatario,
+              });
+            }}
+            playerName={username}
+            balance={saldo}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence mode="wait">
+        {reciboShow.status && (
+          <FloatingReceipt
+            valor={reciboShow.valor}
+            destinatario={reciboShow.destinatario}
+            remetente={reciboShow.remetente}
+            onFinish={() =>
+              setReciboShow((prev) => ({ ...prev, status: false }))
+            }
+          />
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {isHistoryOpen && (
           <HistoryModal
@@ -554,7 +681,7 @@ export const MainPage = () => {
           <PropertiesModal
             close={() => setIsPropertiesOpen(false)}
             allPlayers={allPlayersList}
-            onSell={(prop) => setPropertyToSell(prop)}
+            onSell={(prop) => {setPropertyToSell(prop); setIsPropertiesOpen(false)}}
           />
         )}
       </AnimatePresence>
@@ -684,7 +811,6 @@ export const MainPage = () => {
                   >
                     <ActionButtons
                       actions={actions}
-                      // AQUI: Abre o modal para confirmar (Terminar turno pós-jogada)
                       passTurn={() => openConfirmationModal("finish")}
                       onAction={() => setIsProcessing(true)}
                     />
@@ -701,14 +827,15 @@ export const MainPage = () => {
               exit={{ opacity: 0 }}
             >
               <div className="waiting-turn-title">
-                {playerObject.preso
-                  ? `🔒 Você está Detido (${playerObject.turnosPrisao || 0}/3)`
+                {/* SAFE ACCESS COM ?. */}
+                {playerObject?.preso
+                  ? `🔒 Você está Detido (${playerObject?.turnosPrisao || 0}/3)`
                   : "Aguardando sua vez..."}
               </div>
 
               <div className="waiting-message">
-                {!playerObject.preso && waitingMessage[waitingMessageIndex]}
-                {playerObject.preso && prisonMessage[prisonMessageIndex]}
+                {!playerObject?.preso && waitingMessage[waitingMessageIndex]}
+                {playerObject?.preso && prisonMessage[prisonMessageIndex]}
               </div>
             </motion.div>
           )}
@@ -729,7 +856,6 @@ export const MainPage = () => {
                 key="real-dice"
                 click={rolarDados}
                 serverTotal={dice}
-                // AQUI: Executa direto sem modal (Pular vez antes de jogar)
                 pularVez={handlePassTurn}
                 onComplete={handleDiceComplete}
                 tentarSoltar={tentarSoltar}
@@ -744,7 +870,6 @@ export const MainPage = () => {
               open={openMagicBoxModal}
               close={() => setIsMagicBoxOpen(false)}
               dices={rollFakeDices}
-              // AQUI: Abre modal para confirmar saída
               onLeave={() => openConfirmationModal("leave")}
             />
           )}

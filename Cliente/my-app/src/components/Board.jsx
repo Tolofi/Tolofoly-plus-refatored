@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { motion, LayoutGroup } from "framer-motion";
+import { motion, LayoutGroup, AnimatePresence } from "framer-motion";
+import { BoardMachine } from "./PagamentoBoard";
+import { socket } from "../../socket";
 
 // --- HELPERS ---
 const getCoords = (id) => {
@@ -76,6 +78,7 @@ const GamePawn = ({ player, targetPos, playersOnSameSquare }) => {
 // --- BOARD PRINCIPAL ---
 export const Board = ({ propriedadesServidor, jogadores }) => {
   const [isTvMode, setIsTvMode] = useState(true);
+  const [machineActive, setMachineActive] = useState(false);
 
   const propsArray = Array.isArray(propriedadesServidor)
     ? propriedadesServidor
@@ -83,8 +86,48 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
 
   if (propsArray.length === 0) return <div>Carregando...</div>;
 
+  function sendReceipt(data) {
+    socket.emit("receipt", data);
+  }
+
+  useEffect(() => {
+    function onMachineTransaction(data) {
+      setMachineActive({
+        status: true,
+        valor: data.valor,
+        destinatario: data.destinatario,
+        remetente: data.remetente,
+      });
+    }
+
+    socket.on("machineTransaction", onMachineTransaction);
+
+    // Limpeza (opcional, mas boa prática)
+    return () => {
+      socket.off("machineTransaction", onMachineTransaction);
+    };
+  }, []);
+
   return (
     <div className="game-container">
+      <AnimatePresence mode="wait">
+        {machineActive.status && (
+          <BoardMachine
+            valor={machineActive.valor}
+            destinatario={machineActive.destinatario}
+            remetente={machineActive.remetente}
+            onFinish={() => {
+              setMachineActive(false);
+              sendReceipt({
+                destinatario: machineActive.destinatario,
+                valor: machineActive.valor,
+                remetente: machineActive.remetente,
+              });
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       <LayoutGroup>
         <motion.div
           className={`board-grid ${isTvMode ? "mode-tv" : "mode-tabletop"}`}
@@ -103,7 +146,9 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
-                  <div className="player-name" style={{ color: p.color}}>{p.nome || p.username}</div>
+                  <div className="player-name" style={{ color: p.color }}>
+                    {p.nome || p.username}
+                  </div>
                   <div className="player-money">R$ {p.money}</div>
                 </motion.div>
               ))}
@@ -116,7 +161,7 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                {isTvMode ? "📺 Modo TV" : "🎲 Modo Mesa"}
+                {!isTvMode ? "📺 Modo TV" : "🎲 Modo Mesa"}
               </motion.button>
             </div>
           </div>
@@ -128,32 +173,29 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
             const cor = prop.themeColor || prop.color || "#ccc";
             const isCorner = (x === 1 || x === 11) && (y === 1 || y === 11);
 
-            // 1. Acha o dono (Igual você já fazia)
-            const dono = jogadores.find((j) =>
-              Object.values(j.propriedades || {}).some(
-                (p) => Number(p.id) === Number(prop.id)
-              )
-            );
+            // 1. Acha o dono
+            const dono = jogadores.find((j) => {
+              // Usa o campo padronizado que criamos no AuxiliarScreen
+              const propsDoJogador = j.propertiesIds || j.propriedades || [];
 
-            // 2. CORREÇÃO: Define o nível olhando para o dono (se existir)
-            let nivelAtual = prop.level || 0; // Padrão do tabuleiro
-            let casasAtuais = prop.houses || 0;
+              // Garante que é um array para podermos usar .some ou .includes
+              const listaProps = Array.isArray(propsDoJogador)
+                ? propsDoJogador
+                : Object.values(propsDoJogador);
 
-            if (dono) {
-              // Pega o objeto da propriedade que está DENTRO do jogador
-              const propDoDono = Object.values(dono.propriedades).find(
-                (p) => Number(p.id) === Number(prop.id)
-              );
+              return listaProps.some((p) => {
+                // Verifica se 'p' é um objeto (ex: {id: 1}) ou direto o ID (ex: 1)
+                const idDaPosse = p && typeof p === "object" ? p.id : p;
+                return Number(idDaPosse) === Number(prop.id);
+              });
+            });
 
-              if (propDoDono) {
-                // Se o jogador tiver essa informação, usamos ela prioritariamente
-                if (propDoDono.level !== undefined)
-                  nivelAtual = propDoDono.level;
-                // Alguns backends usam 'houses' ao invés de level, garantindo ambos:
-                if (propDoDono.houses !== undefined)
-                  casasAtuais = propDoDono.houses;
-              }
-            }
+            // 2. 🔥 CORREÇÃO CRÍTICA 🔥
+            // Usamos APENAS os dados da propriedade global (prop) para nível/casas.
+            // Removemos a verificação redundante dentro de 'dono', pois o backend
+            // já garantiu que 'prop' está atualizado via 'emitPropertiesUpdate'.
+            const nivelAtual = prop.level || 0;
+            const casasAtuais = prop.houses || 0;
 
             let rotation = 0;
             if (!isTvMode) {
@@ -169,7 +211,7 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
 
             return (
               <div
-                key={prop.id}
+                key={`${prop.id}-${dono?.id || "livre"}`}
                 className={`tile ${sideClass} ${dono ? "owned" : ""}`}
                 style={tileStyle}
               >
@@ -187,18 +229,20 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                 >
                   <div className="tile-name">
                     {prop.name}
-                    {/* AQUI ESTAVA O ERRO: Usamos 'nivelAtual' ao invés de 'prop.level' */}
+
+                    {/* Renderiza o Nível (Hotéis) */}
                     {nivelAtual > 0 && (
                       <span
                         style={{
                           fontWeight: 900,
-                          color: "green",
+                          color: "#ffd700", // Dourado fica melhor no escuro
                           display: "block",
-                          fontSize: "1.2rem",
+                          fontSize: "1.4rem",
                           zIndex: 1,
+                          textShadow: "0px 0px 4px rgba(0,0,0,0.8)",
                         }}
                       >
-                        {"⌂".repeat(nivelAtual)}
+                        {"★".repeat(nivelAtual)}
                       </span>
                     )}
                   </div>
@@ -209,16 +253,14 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                     </div>
                   )}
 
-                  {/* LÓGICA DAS BOLINHAS (Também atualizada para usar casasAtuais se quiser) */}
-                  {casasAtuais > 0 && !isCorner && (
+                  {/* Renderiza as Casas (Bolinhas) - Se o seu jogo usa casas separado de level */}
+                  {/* Se usar apenas level, pode remover isso ou adaptar */}
+                  {nivelAtual > 0 && nivelAtual < 5 && !isCorner && (
                     <div className="house-container">
-                      {casasAtuais === 5 ? (
-                        <div className="house-dot house-red" />
-                      ) : (
-                        Array.from({ length: casasAtuais }).map((_, i) => (
-                          <div key={i} className="house-dot house-green" />
-                        ))
-                      )}
+                      {/* Exemplo visual simples baseado no nível */}
+                      {Array.from({ length: nivelAtual }).map((_, i) => (
+                        <div key={i} className="house-dot house-green" />
+                      ))}
                     </div>
                   )}
                 </motion.div>
@@ -229,7 +271,7 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
           {/* PEÕES */}
           {jogadores.map((player) => {
             const playersOnSameTarget = jogadores.filter(
-              (p) => Number(p.posicao) === Number(player.posicao)
+              (p) => Number(p.posicao) === Number(player.posicao),
             );
             return (
               <GamePawn

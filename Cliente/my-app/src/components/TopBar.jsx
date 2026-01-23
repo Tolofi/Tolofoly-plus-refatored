@@ -9,10 +9,14 @@ export const TopBar = ({ dado, dinheiro, propriedade, notification }) => {
   return (
     <motion.div
       initial={{ y: -50, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
+      animate={{
+        y: 0,
+        opacity: 1,
+        backgroundColor: notification ? "#9ca3af" : "#fff",
+        border: notification ? "3px solid #fff" : "none",
+      }}
       transition={{ ease: "easeOut", duration: 0.4 }}
       className="dice-money-row"
-      style={{ border: notification ? "3px solid #1f2937" : "none" }}
     >
       <AnimatePresence mode="wait">
         {notification ? (
@@ -24,7 +28,7 @@ export const TopBar = ({ dado, dinheiro, propriedade, notification }) => {
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
             className="topbar-notification" // <--- Classe CSS alinha tudo
-            style={{fontWeight: "600", fontSize: "16px"}}
+            style={{ fontWeight: "900", fontSize: "15px", color: "#fff" }}
           >
             {notification}
           </motion.div>
@@ -39,10 +43,18 @@ export const TopBar = ({ dado, dinheiro, propriedade, notification }) => {
             className="topbar-status-wrapper" // <--- Classe CSS alinha tudo (space-between)
           >
             {/* 1. Dinheiro */}
-            <div className="status-item money">
+            <motion.div
+              className="status-item money"
+              initial={{ y: -50, opacity: 0 }}
+              animate={{
+                y: 0,
+                opacity: 1
+              }}
+              transition={{ ease: "easeOut", duration: 0.4 }}
+            >
               <span className="label">R$</span>
               <span className="value">{dinheiroFormatado}</span>
-            </div>
+            </motion.div>
 
             {/* 2. Propriedades */}
             <div className="status-item properties">
@@ -57,8 +69,15 @@ export const TopBar = ({ dado, dinheiro, propriedade, notification }) => {
                   <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" />
                 </svg>
               </span>
-              <span className="value" style={{color:`${propriedade.themeColor}`}}>{propriedade.id === 0 ? "Início" : propriedade.id} -></span>
-              <span className="value" style={{color:`#008000`}}>{(40 - propriedade.id) ? (40 - propriedade.id) : "?"}</span>
+              <span
+                className="value"
+                style={{ color: `${propriedade.themeColor}` }}
+              >
+                {propriedade.id === 0 ? "Início" : propriedade.id} {"->"}
+              </span>
+              <span className="value" style={{ color: `#008000` }}>
+                {40 - propriedade.id ? 40 - propriedade.id : "?"}
+              </span>
             </div>
 
             {/* 3. Dado */}

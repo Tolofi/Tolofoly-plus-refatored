@@ -12,6 +12,7 @@ import {
   BarcodeScanner,
   BarcodeFormat,
 } from "@capacitor-mlkit/barcode-scanning";
+import { currentVersion } from "../version";
 
 export const Login = () => {
   const [isConnected, setIsConnected] = useState(socket.connected);
@@ -95,6 +96,11 @@ export const Login = () => {
     function onConnect() {
       setIsConnected(true);
     }
+    function onCheckVersion(version) {
+      console.log("Versão atual: " + currentVersion + " | Versão do servidor: " + version)
+      if(version !== currentVersion) navigate("/outdated");
+      
+    }
     function onDisconnect() {
       setIsConnected(false);
     }
@@ -120,6 +126,7 @@ export const Login = () => {
 
     setTimeout(init, 1000);
 
+    socket.on("checkVersion", onCheckVersion);
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("registerSuccess", onRegisterSuccess);
@@ -129,6 +136,7 @@ export const Login = () => {
       socket.connect();
     }
     return () => {
+      socket.off("checkVersion", onCheckVersion);
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("registerSuccess", onRegisterSuccess);

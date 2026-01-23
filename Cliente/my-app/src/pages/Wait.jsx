@@ -19,7 +19,9 @@ export const Wait = () => {
       console.log("GameStarted Recebido!");
       navigate("/main");
     }
-    
+    socket.on("gameAlreadyRunning", () => {
+      navigate("/main"); // ou fechar modal de ready
+    });
     socket.on("gameStarted", onGameStarted);
     socket.on("propertiesUpdate", (data) => {
       console.log(data);
