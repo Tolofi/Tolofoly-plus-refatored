@@ -46,7 +46,7 @@ export const Wait = () => {
       // 3. O SAÍDA: Quando sair, vai para a esquerda (ou direita, você escolhe)
       exit={{ x: "-100vw", opacity: 0 }}
       transition={{ ease: "easeInOut", duration: 0.4 }}
-      className="wait-container"
+      className="wait-container rgb"
     >
       <motion.div
         className="profileCircle"

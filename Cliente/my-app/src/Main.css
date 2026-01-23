@@ -821,3 +821,15 @@ button:focus {
   -webkit-backdrop-filter: blur(8px); /* Suporte para iOS/Safari */
   z-index: 999;
 }
+
+.rgb {
+  --primary: rgb(99, 102, 241); /* base */
+  animation: rgb-hue 3s linear infinite;
+  filter: hue-rotate(0deg);
+}
+
+@keyframes rgb-hue {
+  to {
+    filter: hue-rotate(360deg);
+  }
+}

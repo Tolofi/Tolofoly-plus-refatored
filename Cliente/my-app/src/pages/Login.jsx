@@ -156,6 +156,7 @@ export const Login = () => {
           borderRadius: "20px",
           color: "#fff",
         }}
+        className="rgb"
         onClick={() => navigate("/board")}
       >
         Tabuleiro
@@ -166,7 +167,7 @@ export const Login = () => {
         animate={{ x: 0 }}
         exit={{ x: "-100vw", opacity: 0 }}
         transition={{ ease: "easeInOut", duration: 0.4 }}
-        className="login-container"
+        className="login-container rgb"
       >
         <AnimatePresence>
           {alertShow && (
