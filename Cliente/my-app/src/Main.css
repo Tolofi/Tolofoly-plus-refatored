@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap");
 
 :root {
   /* --- CORES --- */
@@ -17,6 +18,7 @@
 }
 
 * {
+  font-family: "Nunito", sans-serif;
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
 }
@@ -24,7 +26,7 @@
 /* 1. RESET E LAYOUT GERAL */
 body {
   background-color: var(--bg-app);
-  font-family: "Manrope", sans-serif;
+  font-family: "Nunito", sans-serif;
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -32,6 +34,12 @@ body {
   justify-content: center;
   align-items: center;
   padding-top: env(safe-area-inset-top);
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Nunito", sans-serif;
 }
 
 button:focus {
@@ -233,7 +241,7 @@ button:focus {
   padding: 0 20px;
   margin: 0 auto;
 
-  font-family: "Manrope", sans-serif;
+  font-family: "Nunito", sans-serif;
   font-weight: 600;
   color: #1f2937;
   position: relative;
@@ -298,7 +306,7 @@ button:focus {
   border-radius: 24px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  font-family: "Manrope", sans-serif;
+  font-family: "Nunito", sans-serif;
   /* border: 1px solid #f0f1f5;} */
 }
 
@@ -307,7 +315,7 @@ button:focus {
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-bottom: 1px solid #f0f0f5;
+  /* border-bottom: 1px solid #f0f0f5; */
 }
 
 .nu-tag-container {
@@ -315,11 +323,28 @@ button:focus {
   align-items: center;
   gap: 8px;
 }
+
+.nu-property-owner {
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-weight: 600;
+  font-family: "Nunito", sans-serif;
+  text-align: center;
+  font-size: 18px;
+  width: fit-content;
+  color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .nu-color-dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 1), 0 0 0 4px currentColor;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 1),
+    0 0 0 4px currentColor;
 }
 .nu-location-text {
   font-size: 0.75rem;
@@ -338,7 +363,7 @@ button:focus {
 }
 
 .nu-rent-list {
-  padding: 16px 20px;
+  padding: 10px 20px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -398,13 +423,14 @@ button:focus {
   border-radius: 16px;
   border: none;
 
-  background-color: #1f2937; /* Botão Escuro (igual ao MagicBox) */
   color: white;
 
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.1s, background-color 0.2s;
+  transition:
+    transform 0.1s,
+    background-color 0.2s;
 }
 .buttons-container button:active {
   transform: scale(0.98);
@@ -486,7 +512,7 @@ button:focus {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   padding: 0 20px;
   margin: 0 auto;
-  font-family: "Manrope", sans-serif;
+  font-family: "Nunito", sans-serif;
   font-weight: 600;
   color: #1f2937;
   left: 0vw;
@@ -544,7 +570,8 @@ button:focus {
   padding: 8px 20px 24px 20px; /* Mais espaço embaixo */
 
   /* Sombra suave e difusa (Soft Shadow) */
-  box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.1),
+  box-shadow:
+    0 20px 40px -5px rgba(0, 0, 0, 0.1),
     0 10px 15px -5px rgba(0, 0, 0, 0.05);
 
   /* Borda sutil para separar do fundo caso o fundo do site seja branco também */
@@ -650,7 +677,8 @@ button:focus {
   border: 1px solid rgba(0, 0, 0, 0.05);
 
   /* Sombra Suave */
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
     0 8px 10px -6px rgba(0, 0, 0, 0.05);
 
   /* Alinhamento do Ícone */
@@ -668,7 +696,8 @@ button:focus {
 
 .open-magic-box-btn:hover {
   transform: translateX(-50%); /* Sobe um pouquinho */
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15),
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.15),
     0 10px 10px -5px rgba(0, 0, 0, 0.08);
   color: #000;
 }
@@ -716,8 +745,9 @@ button:focus {
 
 /* Título */
 .magic-modal-title {
+  font-family: "Nunito", sans-serif;
   margin: 0;
-  font-size: 18px;
+  font-size: 30px;
   color: #1f2937;
   font-weight: 700;
 }
@@ -731,7 +761,7 @@ button:focus {
   font-size: 1rem;
   color: var(--text-main);
   outline: none;
-  font-family: inherit;
+  font-family: "Nunito", sans-serif;
   transition: box-shadow 0.2s;
   /* width: 100%;
   padding: 14px 16px;
@@ -761,10 +791,12 @@ button:focus {
   background-color: #1f2937; /* Botão Escuro (igual ao MagicBox) */
   color: white;
 
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.1s, background-color 0.2s;
+  transition:
+    transform 0.1s,
+    background-color 0.2s;
 }
 
 .magic-modal-btn:hover {
@@ -832,4 +864,46 @@ button:focus {
   to {
     filter: hue-rotate(360deg);
   }
+}
+
+/* 1. Variant: SUCCESS 
+   Usado para: Comprar, Pagar Aluguel, Pagar Taxa, Sortear Carta.
+   Cor: Verde Vibrante 
+*/
+.btn-success {
+  background-color: #10b981; /* Emerald Green */
+  color: #ffffff !important; /* Texto sempre branco */
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: #059669; /* Tom mais escuro no hover */
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6); /* Glow verde */
+}
+
+/* 2. Variant: PRIMARY 
+   Usado para: Construir (Upgrade), Destruir (Downgrade).
+   Cor: Azul Institucional/Estratégico
+*/
+.btn-primary {
+  background-color: #3b82f6; /* Royal Blue */
+  color: #ffffff !important;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2563eb;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+}
+
+/* 3. Variant: DANGER 
+   Usado para: Vender ao Banco.
+   Cor: Vermelho Alerta
+*/
+.btn-danger {
+  background-color: #ef4444; /* Red */
+  color: #ffffff !important;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #dc2626;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
 }

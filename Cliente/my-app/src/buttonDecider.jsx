@@ -104,7 +104,7 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
           if (propId === null) return alert("Erro: ID inválido");
 
           // Emite o pagamento
-          socket.emit("playerTransaction", dono, valorAluguel);
+          socket.emit("playerRentPay", dono, valorAluguel, propriedade.id);
         },
       });
     }
@@ -126,7 +126,7 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
       if (nivelAtual < 5) {
         const proximoNivel = nivelAtual === 4 ? "Hotel" : "Casa";
         actions.push({
-          label: `Construir ${proximoNivel} (R$ ${custoUpgrade})`,
+          label: `Construir ${proximoNivel} -> R$ ${custoUpgrade}`,
           variant: "primary",
           onClick: () => {
             if (propId === null) return;
@@ -164,7 +164,7 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
 
     // 2. VENDER (Para qualquer propriedade)
     actions.push({
-      label: `Vender`,
+      label: `Vender -> R$ ${propriedade.price * 0.8}`,
       variant: "danger",
       onClick: () => {
         if (propId === null) return;

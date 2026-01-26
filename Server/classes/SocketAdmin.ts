@@ -351,44 +351,88 @@ export class SocketAdmin {
       });
 
       socket.on("registerPlayer", (username: string) => {
-        // 1. LIMPEZA PREVENTIVA
+        // 1. Verificar se o jogador já existe
         const playersArray = Array.from(Memory.players.values());
         const ghostPlayer = playersArray.find((p) => p.username === username);
 
         if (ghostPlayer) {
+          // --- CENÁRIO A: JOGADOR JÁ EXISTE (RECUPERAÇÃO) ---
+          console.log(`♻️ Recuperando sessão para: ${username}`);
+
+          // 1. Remove o mapeamento do socket antigo
           const oldSocketId = Memory.getSocketIdByUsername(username);
           if (oldSocketId) {
             const oldSocket = this.io.sockets.sockets.get(oldSocketId);
-            if (oldSocket) {
-              oldSocket.disconnect(true);
-            }
+            if (oldSocket) oldSocket.disconnect(true);
             Memory.playerBySocketId.delete(oldSocketId);
           }
-          Memory.players.delete(username);
-        }
 
-        // 2. REGISTRO LIMPO
-        const success = Memory.registerPlayer(socket.id, username);
+          // 2. ATUALIZA O JOGADOR EXISTENTE
+          ghostPlayer.socketId = socket.id; // Atualiza a ref no objeto
+          Memory.playerBySocketId.set(socket.id, ghostPlayer); // Atualiza o Map
 
-        if (success) {
           this.atualizarTerminal();
           socket.emit("registerSuccess");
 
-          const player = Memory.getPlayerByUsername(username);
-          if (player) {
-            socket.emit("reconnectSuccess", player.toDTO());
-            const propInicial = Memory.getPropriedadeById(0);
-            socket.emit("currentRoundData", { propriedade: propInicial });
-            player.setPreso(false);
-          }
+          // Envia os dados ATUAIS (com dinheiro e props antigos)
+          socket.emit("reconnectSuccess", ghostPlayer.toDTO());
 
+          const propAtual = Memory.getPropriedadeById(ghostPlayer.getPosicao());
+          socket.emit("currentRoundData", { propriedade: propAtual });
+
+          // Atualiza todos
           this.sendAllPlayers();
           this.emitPlayerUpdate(username);
           this.emitPropertiesUpdate();
 
-          this.emitPersonalHistory(username, `👋 Entrou no jogo.`);
+          this.emitPersonalHistory(username, `👋 Você retornou ao jogo.`);
+
+          // ========================================================
+          // 🔄 CORREÇÃO: SINCRONIA DE TURNO
+          // ========================================================
+
+          // 1. Se for a vez do jogador que reconectou:
+          if (this.currentTurnUser === username) {
+            console.log(`👉 Devolvendo a vez para ${username}`);
+            socket.emit("yourTurn", {
+              hasRolled: this.currentTurnHasRolled,
+              lastValue: this.dadoAtual,
+            });
+          }
+
+          // 2. Sempre avise quem é o jogador da vez (seja ele ou outro)
+          // Isso garante que a UI mostre "Vez de Fulano" corretamente
+          if (this.currentTurnUser) {
+            socket.emit("turn_update", {
+              playerDaVez: this.currentTurnUser,
+            });
+          }
+          // ========================================================
         } else {
-          socket.emit("registerFail", "Erro ao registrar. Tente outro nome.");
+          // --- CENÁRIO B: NOVO JOGADOR ---
+          // ... (Seu código original de novo jogador permanece igual)
+          const success = Memory.registerPlayer(socket.id, username);
+
+          if (success) {
+            this.atualizarTerminal();
+            socket.emit("registerSuccess");
+
+            const player = Memory.getPlayerByUsername(username);
+            if (player) {
+              socket.emit("reconnectSuccess", player.toDTO());
+              const propInicial = Memory.getPropriedadeById(0);
+              socket.emit("currentRoundData", { propriedade: propInicial });
+              player.setPreso(false);
+            }
+
+            this.sendAllPlayers();
+            this.emitPlayerUpdate(username);
+            this.emitPropertiesUpdate();
+
+            this.emitPersonalHistory(username, `👋 Entrou no jogo.`);
+          } else {
+            socket.emit("registerFail", "Erro ao registrar. Tente outro nome.");
+          }
         }
       });
 
@@ -399,7 +443,32 @@ export class SocketAdmin {
       socket.on("readyForInit", () => {
         // 1. Se o jogo JÁ ESTÁ RODANDO, ignora o início e apenas sincroniza
         if (this.isGameRunning) {
-          socket.emit("sync_game");
+          const username = Memory.getUsernameBySocketId(socket.id)?.username;
+
+          if (username) {
+            const player = Memory.getPlayerByUsername(username);
+            if (player) {
+              const propAtual = Memory.getPropriedadeById(player.getPosicao());
+              socket.emit("currentRoundData", { propriedade: propAtual });
+            }
+          }
+
+          if (this.currentTurnUser) {
+            if (this.currentTurnUser === username) {
+              socket.emit("yourTurn", {
+                hasRolled: this.currentTurnHasRolled,
+                lastValue: this.dadoAtual,
+              });
+            }
+            socket.emit("turn_update", {
+              playerDaVez: this.currentTurnUser,
+            });
+          }
+
+          const playerNames = Array.from(Memory.players.values()).map((p) =>
+            p.getUsername(),
+          );
+          socket.emit("allPlayersUpdate", playerNames);
 
           // 🔥 EVENTO EXPLÍCITO PARA LIBERAR O FRONT
           socket.emit("gameAlreadyRunning");
@@ -1127,6 +1196,9 @@ export class SocketAdmin {
             socket.emit("playerTrasactionResult", true);
           }
           const destinySocket = Memory.getSocketIdByUsername(destinyUsername);
+          const sendingSocket = Memory.getSocketIdByUsername(
+            senderPlayer.getUsername(),
+          );
 
           const resultado = Banco.transacaoMonetaria(
             valor,
@@ -1134,11 +1206,11 @@ export class SocketAdmin {
             destinyUsername,
           );
 
-          socket.emit("notification", resultado.msgDe);
+          // socket.emit("notification", resultado.msgDe);
           if (destinySocket) {
             this.io.to(destinySocket).emit("notification", resultado.msgPara);
           }
-          socket.emit("playerTrasactionResult", resultado);
+          socket.emit("playerTransactionResult", resultado);
 
           this.emitPlayerUpdate(sendingUsername);
           this.emitPlayerUpdate(destinyUsername);
@@ -1155,6 +1227,52 @@ export class SocketAdmin {
               `📥 Você recebeu R$ ${valor} de ${sendingUsername}.`,
             );
           }
+        },
+      );
+      socket.on(
+        "playerRentPay",
+        (destinyUsername: string, valor: number, propriedadeId: number) => {
+          const senderPlayer = Memory.getUsernameBySocketId(socket.id);
+          if (!senderPlayer) return;
+
+          const sendingUsername = senderPlayer.getUsername();
+          if (destinyUsername === "Banco") {
+            senderPlayer.deduzirSaldo(valor);
+            socket.emit("playerTrasactionResult", true);
+          }
+          const destinySocket = Memory.getSocketIdByUsername(destinyUsername);
+          const sendingSocket = Memory.getSocketIdByUsername(
+            senderPlayer.getUsername(),
+          );
+
+          const resultado = Banco.transacaoMonetaria(
+            valor,
+            sendingUsername,
+            destinyUsername,
+          );
+
+          // socket.emit("notification", resultado.msgDe);
+          if (destinySocket) {
+            this.io.to(destinySocket).emit("notification", resultado.msgPara);
+          }
+          socket.emit("playerTransactionResult", resultado);
+
+          if (resultado.status) {
+            this.emitPersonalHistory(
+              sendingUsername,
+              `📤 Você enviou R$ ${valor} para ${destinyUsername}.`,
+            );
+            this.emitPersonalHistory(
+              destinyUsername,
+              `📥 Você recebeu R$ ${valor} de ${sendingUsername}.`,
+            );
+            socket.emit("rentPaid");
+            Memory.getPropriedadeById(propriedadeId)?.addCapital(valor);
+          }
+          this.emitPlayerUpdate(sendingUsername);
+          this.emitPlayerUpdate(destinyUsername);
+          this.sendAllPlayers();
+          this.emitPropertiesUpdate();
         },
       );
 
@@ -1186,7 +1304,7 @@ export class SocketAdmin {
             `📉 Você vendeu ${prop.getName()} por R$ ${valorRecebido}.`,
           );
         } else {
-          socket.emit("error", result.mensagem || "Erro ao vender");
+          socket.emit("notification", result.mensagem || "Erro ao vender");
         }
       });
 

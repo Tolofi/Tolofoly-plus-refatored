@@ -26,7 +26,10 @@ export const MainPage = () => {
 
   // 1. Buscando dados do Zustand
   const isMyTurn = useGameStore((state) => state.isMyTurn);
-  const username = useGameStore((state) => state.username);
+  const username =
+    useGameStore((state) => state.username) ||
+    useGameStore((state) => state.meAsObject?.username) ||
+    localStorage.getItem("monopoly_username");
   const playerObject = useGameStore((state) => state.meAsObject);
   const saldo = useGameStore((state) => state.meAsObject?.saldo || 0);
   const turnPhase = useGameStore((state) => state.turnPhase);
@@ -331,6 +334,10 @@ export const MainPage = () => {
       unlockUI();
     }
 
+    function onRentPaid() {
+      setIsProcessing(false);
+    }
+
     function onRegisterSuccess() {
       const currentName = useGameStore.getState().username;
       if (currentName) {
@@ -460,7 +467,7 @@ export const MainPage = () => {
         setCardShow({
           status: true,
           remetente: currentUser,
-          destinatario: transferTargetRef.current || "Jogador",
+          destinatario: data.msgDe[0] || "Jogador",
           valor: valorTransacao,
         });
       }
@@ -521,10 +528,11 @@ export const MainPage = () => {
     socket.off("yourTurn");
     socket.off("currentRoundData");
     socket.off("turn_update");
-    socket.off("playerTrasactionResult");
+    socket.off("playerTransactionResult");
     socket.off("Jailled");
     socket.off("propertyTransactionResult");
     socket.off("transactionReceipt");
+    socket.off("rentPaidSuccess");
 
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
@@ -549,10 +557,11 @@ export const MainPage = () => {
     socket.on("yourTurn", onYourTurn);
     socket.on("currentRoundData", onCurrentRoundData);
     socket.on("turn_update", onTurnUpdate);
-    socket.on("playerTrasactionResult", onPlayerTransactionResult);
+    socket.on("playerTransactionResult", onPlayerTransactionResult);
     socket.on("Jailled", onJailled);
     socket.on("propertyTransactionResult", onGenericUnlock);
     socket.on("transactionReceipt", onTransactionReceipt);
+    socket.on("rentPaidSuccess", onRentPaid);
 
     return () => {
       socket.off("connect", onConnect);
@@ -579,9 +588,10 @@ export const MainPage = () => {
       socket.off("currentRoundData", onCurrentRoundData);
       socket.off("turn_update", onTurnUpdate);
       socket.off("aiMessage", onAiMessage);
-      socket.off("playerTrasactionResult", onPlayerTransactionResult);
+      socket.off("playerTransactionResult", onPlayerTransactionResult);
       socket.off("Jailled", onJailled);
       socket.off("propertyTransactionResult", onGenericUnlock);
+      socket.off("rentPaidSuccess", onRentPaid);
     };
   }, []);
 
@@ -681,7 +691,10 @@ export const MainPage = () => {
           <PropertiesModal
             close={() => setIsPropertiesOpen(false)}
             allPlayers={allPlayersList}
-            onSell={(prop) => {setPropertyToSell(prop); setIsPropertiesOpen(false)}}
+            onSell={(prop) => {
+              setPropertyToSell(prop);
+              setIsPropertiesOpen(false);
+            }}
           />
         )}
       </AnimatePresence>
@@ -704,6 +717,7 @@ export const MainPage = () => {
             setQtd={setModalQtd}
             val={modalQtd}
             isMove={isMove}
+            close={() => setIsModalOpen(false)}
           />
         )}
       </AnimatePresence>

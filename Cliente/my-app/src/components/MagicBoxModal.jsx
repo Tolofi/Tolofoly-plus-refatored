@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-export const MagicBoxModal = ({ act, setQtd, val, isMove }) => {
+export const MagicBoxModal = ({ act, setQtd, val, isMove, close }) => {
   return (
     <>
       <motion.div
@@ -8,7 +8,7 @@ export const MagicBoxModal = ({ act, setQtd, val, isMove }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={() => act()} // Fecha se clicar fora (opcional, sem argumentos)
+        onClick={close} // Fecha se clicar fora (opcional, sem argumentos)
       />
 
       <motion.div
@@ -26,7 +26,10 @@ export const MagicBoxModal = ({ act, setQtd, val, isMove }) => {
           placeholder="Digite a quantidade..."
           autoFocus
           value={val === 0 ? "" : val}
-          onChange={(e) => setQtd(Number(e.target.value))}
+          onChange={(e) => {
+            const apenasNumeros = e.target.value.replace(/[^0-9]/g, "");
+            setQtd(apenasNumeros);
+          }}
         />
 
         {isMove && (

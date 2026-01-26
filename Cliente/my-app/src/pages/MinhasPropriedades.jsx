@@ -1,0 +1,5 @@
+export const MinhasPropriedades = () => {
+    return (
+        
+    )
+}

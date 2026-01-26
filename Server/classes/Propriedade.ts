@@ -2,6 +2,7 @@ export class Propriedade {
   id: number;
   name: string;
   ownerUsername: string | null = null;
+  acummulatedCapital: number = 0;
   themeColor: string;
   color: string;
   baseRent: number | null;
@@ -76,15 +77,25 @@ export class Propriedade {
   getLevelUpCost(): number | null {
     return this.levelUpCost;
   }
-  increaseLevel() {
+  increaseLevel(): number | undefined {
     if(this.level > 4) return
     return this.level++;
   }
-  decreaseLevel() {
+  decreaseLevel(): number | undefined {
     if(this.level < 1) return
     return this.level--;
   }
-  getId() {
+  getId(): number {
     return this.id;
+  }
+  reset(): void {
+    this.level = 0;
+    this.ownerUsername = null;
+  }
+  addCapital(qtd: number): void {
+    this.acummulatedCapital += qtd;
+  }
+  resetCapital(): void {
+    this.acummulatedCapital = 0;
   }
 }

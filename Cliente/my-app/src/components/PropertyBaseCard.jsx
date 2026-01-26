@@ -30,240 +30,104 @@ export const NuPropertyCard = ({ propriedade }) => {
   const isSpecialType = isEstacao || isCompanhia;
 
   return (
-      <motion.div
-        key={propriedade.id || propriedade.name}
-        className="nu-card"
-        initial={{ x: "-100vh" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100vh" }}
-        transition={{ ease: "easeInOut", duration: 0.5 }}
+    <motion.div
+      key={propriedade.id || propriedade.name}
+      className="nu-card"
+      initial={{ x: "-100vh" }}
+      animate={{ x: 0 }}
+      exit={{ x: "100vh" }}
+      transition={{ ease: "easeInOut", duration: 0.5 }}
+      style={{ border: `2px solid ${mainColor}` }}
+    >
+      {/* HEADER */}
+      <div
+        className="nu-header"
+        style={{
+          backgroundColor: mainColor,
+          color: "#fff",
+        }}
       >
-        {/* HEADER */}
-        <div
-          className="nu-header"
-          style={{
-            backgroundColor: mainColor,
-            color: "white",
-          }}
-        >
-          <div className="nu-tag-container"></div>
-          <h2 className="nu-title">{propriedade.name}</h2>
-        </div>
+        <div className="nu-tag-container"></div>
+        <h2 className="nu-title" style={{ color: "#fff" }}>
+          {propriedade.name}
+        </h2>
+      </div>
 
-        {/* LISTA DE ALUGUÉIS */}
-        <div className="nu-rent-list" style={{ position: "relative" }}>
-          {propriedade.rent.map((valor, index) => {
-            const isActive = propriedade.level === index;
-
-            const isPadrao = !isSpecialType && index === 0;
-            const isHotel = !isSpecialType && index === 5;
-            const isHouse = !isSpecialType && !isPadrao && !isHotel;
-
-            return (
-              <div
-                key={index}
-                className="nu-rent-item"
-                // Removemos o style condicional daqui para usar o motion.div abaixo
-                style={{
-                  position: "relative",   // Necessário para o absolute do fundo funcionar
-                  zIndex: 1, // Contexto de empilhamento
-                  backgroundColor: "transparent", // Fundo transparente, quem dá a cor é o motion.div
-                }}
+      {/* LISTA DE ALUGUÉIS */}
+      <div
+        className="nu-rent-list"
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          flexDirection: "column",
+          backgroundColor: "#fff",
+        }}
+      >
+        <div className="casas">
+          {/* Cria um array com o tamanho do 'level' e faz o map */}
+          {Array.from({ length: propriedade.level || 0 }).map((_, index) => (
+            <svg // Obrigatório no React ao usar map
+              key={index}
+              xmlns="http://www.w3.org/2000/svg"
+              width="50"
+              height="50"
+              viewBox="0 0 24 24"
+              fill={mainColor} // Adicionei o # que faltava no Hex
+            >
+              <path
+                d="M4 20h16V10l-8-7-8 7z"
+                stroke={mainColor}
+                strokeWidth="1" // React usa camelCase
+                strokeLinecap="round" // React usa camelCase
+                strokeLinejoin="round" // React usa camelCase
+                className={propriedade.level === 5 && "rgb"}
+              />
+              <text
+                x="12" // Metade da largura do viewBox (24 / 2)
+                y="14" // Metade da altura (12) + um ajuste visual leve para baixo
+                textAnchor="middle" // Centraliza horizontalmente
+                dominantBaseline="middle" // Centraliza verticalmente
+                fill="#fff" // Cor do texto
+                fontSize="10" // Tamanho da fonte
+                fontWeight="bold" // Negrito
+                style={{ userSelect: "none", fontFamily: "Nunito, sans-serif" }} // Impede que o usuário selecione o texto
               >
-                {/* --- FUNDO ANIMADO (MAGIC MOTION) --- */}
-                {isActive && (
-                  <motion.div
-                    // CORREÇÃO AQUI: Adicionamos o ID da propriedade ao layoutId
-                    layoutId={`active-rent-bg-${
-                      propriedade.id || propriedade.name
-                    }`}
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      backgroundColor: activeBackground,
-                      borderRadius: 8,
-                      zIndex: -1,
-                    }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }} // Sugestão: Spring fica mais natural que easeInOut
-                  />
-                )}
-
-                {/* LADO ESQUERDO: Ícone + Texto */}
-                {/* Envolvemos o conteúdo num span relativo para garantir z-index acima do fundo */}
-                <span
-                  className="label"
-                  style={{
-                    position: "relative",
-                    zIndex: 2,
-                    color: isActive ? textActiveColor : undefined,
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  {/* 1. Ícone Padrão */}
-                  {isPadrao && (
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 21h18v-8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8z"></path>
-                    </svg>
-                  )}
-
-                  {/* 2. Ícone Casas */}
-                  {isHouse && (
-                    <span
-                      style={{
-                        display: "flex",
-                        gap: "3px",
-                        alignItems: "center",
-                      }}
-                    >
-                      {index}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                      </svg>
-                    </span>
-                  )}
-
-                  {/* 3. Ícone Hotel */}
-                  {isHotel && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect
-                        x="4"
-                        y="2"
-                        width="16"
-                        height="20"
-                        rx="2"
-                        ry="2"
-                      ></rect>
-                      <line x1="9" y1="2" x2="9" y2="22"></line>
-                      <line x1="15" y1="2" x2="15" y2="22"></line>
-                      <line x1="4" y1="12" x2="20" y2="12"></line>
-                      <line x1="4" y1="7" x2="20" y2="7"></line>
-                      <line x1="4" y1="17" x2="20" y2="17"></line>
-                    </svg>
-                  )}
-
-                  {/* 4. Ícone Estação */}
-                  {isEstacao && (
-                    <span
-                      style={{
-                        display: "flex",
-                        gap: "4px",
-                        alignItems: "center",
-                      }}
-                    >
-                      {index + 1}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <rect x="2" y="5" width="20" height="10" rx="2" />
-                        <path d="M2 10h20" />
-                        <path d="M7 15l-2 5" />
-                        <path d="M17 15l2 5" />
-                        <path d="M8 8a2 2 0 1 1-4 0" />
-                        <path d="M16 8a2 2 0 1 1 4 0" />
-                      </svg>
-                    </span>
-                  )}
-
-                  {/* 5. Ícone Companhia */}
-                  {isCompanhia && (
-                    <span
-                      style={{
-                        display: "flex",
-                        gap: "4px",
-                        alignItems: "center",
-                      }}
-                    >
-                      {index + 1}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                      </svg>
-                    </span>
-                  )}
-
-                  {/* TEXTO DESCRITIVO */}
-                  <span style={{ marginLeft: "6px" }}>
-                    {isSpecialType
-                      ? isEstacao
-                        ? index === 0
-                          ? "Estação"
-                          : "Estações"
-                        : index === 0
-                        ? "Companhia"
-                        : "Companhias"
-                      : isPadrao
-                      ? "Aluguel Base"
-                      : isHotel
-                      ? "Hotel"
-                      : "Casas"}
-                  </span>
-                </span>
-
-                {/* LADO DIREITO: Valor */}
-                <span
-                  className="value"
-                  style={{
-                    position: "relative",
-                    zIndex: 2,
-                    color: isActive ? textActiveColor : undefined,
-                    fontWeight: isActive ? "700" : undefined,
-                  }}
-                >
-                  R$ {valor.toLocaleString("pt-BR")}
-                </span>
-              </div>
-            );
-          })}
+                {index + 1}
+              </text>
+            </svg>
+          ))}
         </div>
-      </motion.div>
-    
+        <div style={{display: "flex", width: "100%", justifyContent: "space-around"}}>
+          <div className="nu-property-owner">
+            <span style={{ fontSize: "0.9rem", fontWeight: 400 }}>Aluguel</span>
+            <span style={{ fontSize: "1.8rem", color: mainColor }}>
+              R$ {propriedade.rent[propriedade.level]}
+            </span>
+          </div>
+          <div className="nu-property-owner">
+            <span style={{ fontSize: "0.9rem", fontWeight: 400 }}>Dono</span>
+            <span
+              style={{
+                fontSize: "1.8rem",
+                color: mainColor,
+                textTransform: "uppercase",
+              }}
+            >
+              {propriedade.ownerUsername || "Banco"}
+            </span>
+          </div>
+        </div>
+
+        <div className="nu-property-owner">
+          <span style={{ fontSize: "0.9rem", fontWeight: 400 }}>
+            Arrecadação
+          </span>
+          <span style={{ fontSize: "1.8rem", color: mainColor }}>
+            R$ {propriedade.acummulatedCapital}
+          </span>
+        </div>
+      </div>
+    </motion.div>
   );
 };

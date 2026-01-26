@@ -128,7 +128,7 @@ export class Banco {
     // tudo validado → executa
     player.deduzirSaldo(valor);
     propriedade.level++;
-    return "Casas adicionada à propriedade com sucesso";
+    return "Casa adicionada à propriedade com sucesso";
   }
 
   static diminuirLevelPropriedade(
@@ -185,6 +185,7 @@ export class Banco {
     playerDe.removerPropriedade(propriedadeId);
     playerPara.adicionarPropriedade(propriedadeId, propriedade);
     propriedade.setOwner(para);
+    propriedade.resetCapital();
     if (propriedade.getColor() === "Estacao") {
       playerDe.decreaseEstacoes();
       playerPara.increaseEstacoes();
@@ -244,7 +245,8 @@ export class Banco {
 
     // 3. Removemos a propriedade do jogador e limpamos o dono
     player.removerPropriedade(propriedadeId);
-    propriedade.setOwner(null);
+    propriedade.reset();
+    propriedade.resetCapital();
 
     // 4. LÓGICA ESPECIAL PARA ESTAÇÕES (Recálculo de quem sobrou)
     if (propriedade.getColor() === "Estacao") {
