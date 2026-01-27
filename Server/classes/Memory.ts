@@ -38,6 +38,30 @@ export class Memory {
     return false;
   }
 
+  // --- IMPLEMENTAÇÃO 1: Define o clima aleatório para todas as propriedades ---
+  static randomizeWeather() {
+    this.propriedades.forEach((prop) => {
+      // Verifica se o método existe antes de chamar (segurança)
+      // assumindo que suas classes de Propriedade possuem esse método
+      if (
+        "randomWeather" in prop &&
+        typeof (prop as any).randomWeather === "function"
+      ) {
+        (prop as any).randomWeather();
+      }
+    });
+  }
+
+  // --- IMPLEMENTAÇÃO 2: Define o dia/noite para todas as propriedades ---
+  static setGlobalHour(hour: "dia" | "noite") {
+    this.propriedades.forEach((prop) => {
+      // Verifica se o método existe antes de chamar
+      if ("setHour" in prop && typeof (prop as any).setHour === "function") {
+        (prop as any).setHour(hour);
+      }
+    });
+  }
+
   static getPlayerByUsername(username: string): Player | null {
     return this.players.get(username) || null;
   }
@@ -54,66 +78,52 @@ export class Memory {
     return Array.from(this.players.keys());
   }
 
-  // --- CORREÇÃO AQUI ---
   public static updateSocketId(username: string, newSocketId: string) {
     const player = this.players.get(username);
 
     if (player) {
-      // 1. Pega o ID do socket antigo que está salvo no objeto do jogador
       const oldSocketId = player.socketId;
 
-      // 2. Remove o registro antigo do mapa reverso (SocketID -> Username)
       if (oldSocketId && this.playerBySocketId.has(oldSocketId)) {
         this.playerBySocketId.delete(oldSocketId);
       }
 
-      // 3. Atualiza o socket dentro do objeto Player
       player.socketId = newSocketId;
-      // OBS: Se 'socketId' for privado no Player, use: player.setSocketId(newSocketId);
-
-      // 4. Cria o novo registro no mapa reverso
       this.playerBySocketId.set(newSocketId, username);
-
-      // console.log(
-      //   `Socket atualizado para ${username}: ${oldSocketId} -> ${newSocketId}`
-      // );
     }
   }
 
   static initializeProperties(): void {
     if (this.isPropertyInitialized) {
-      // console.log("Propriedades já inicializadas.");
       return;
     }
-
-
 
     let i = 0;
 
     // --- GRUPO 1 ---
     Memory.propriedades.set(
       i++,
-      new PropriedadeNula(i, "Ponto de Partida", "Comeco", "#008000")
+      new PropriedadeNula(i, "Ponto de Partida", "Comeco", "#008000"),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Av. Sumaré", "#8B4513", "Marrom", 500, 20, 600)
+      new Propriedade(i, "Av. Sumaré", "#8B4513", "Marrom", 500, 20, 600),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeCompanhia(i, "Companhia de Saneamento Básico")
+      new PropriedadeCompanhia(i, "Companhia de Saneamento Básico"),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Praça da Sé", "#8B4513", "Marrom", 500, 40, 600)
+      new Propriedade(i, "Praça da Sé", "#8B4513", "Marrom", 500, 40, 600),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeTaxa(i, "Imposto de Renda", 2000)
+      new PropriedadeTaxa(i, "Imposto de Renda", 2000),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeSorte(i, "Via De Pedestres", "Sorte")
+      new PropriedadeSorte(i, "Via De Pedestres", "Sorte"),
     );
 
     // --- GRUPO 2 ---
@@ -126,47 +136,71 @@ export class Memory {
         "Azul Claro",
         500,
         60,
-        1000
-      )
+        1000,
+      ),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeEstacao(i, "Estacao De Metro Maracanã")
+      new PropriedadeEstacao(i, "Aeroporto de Confins"),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Av. São João", "#94bdcaff", "Azul Claro", 500, 60, 1000)
+      new Propriedade(
+        i,
+        "Av. São João",
+        "#94bdcaff",
+        "Azul Claro",
+        500,
+        60,
+        1000,
+      ),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Av. Paulista", "#94bdcaff", "Azul Claro", 500, 80, 1200)
+      new Propriedade(
+        i,
+        "Av. Paulista",
+        "#94bdcaff",
+        "Azul Claro",
+        500,
+        80,
+        1200,
+      ),
     ); // ID 9
     Memory.propriedades.set(
       i++,
-      new PropriedadeNula(i, "Prisão (Visitante)", "Visitante", "#ffc067")
+      new PropriedadeNula(i, "Prisão (Visitante)", "Visitante", "#ffc067"),
     ); // ID 10
 
     // --- GRUPO 3 ---
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Av. Vieira Souto", "#FF69B4", "Rosa", 1000, 100, 1400)
+      new Propriedade(
+        i,
+        "Av. Vieira Souto",
+        "#FF69B4",
+        "Rosa",
+        1000,
+        100,
+        1400,
+      ),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeCompanhia(i, "Companhia de Telecomunicação")
+      new PropriedadeCompanhia(i, "Companhia de Telecomunicação"),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Niterói", "#FF69B4", "Rosa", 1000, 100, 1400)
+      new Propriedade(i, "Niterói", "#FF69B4", "Rosa", 1000, 100, 1400),
     );
     // CORREÇÃO: Renomeado de "Av. Paulista" para "Av. Brasil" para evitar conflito de nomes
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Av. Atlântica", "#FF69B4", "Rosa", 1000, 120, 1600)
+      new Propriedade(i, "Av. Atlântica", "#FF69B4", "Rosa", 1000, 120, 1600),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeSorte(i, "Via De Bicicletas", "Sorte")
+      new PropriedadeSorte(i, "Via De Bicicletas", "Sorte"),
     );
 
     // --- GRUPO 4 ---
@@ -179,13 +213,10 @@ export class Memory {
         "Laranja",
         1000,
         140,
-        1800
-      )
+        1800,
+      ),
     );
-    Memory.propriedades.set(
-      i++,
-      new PropriedadeEstacao(i, "Estacao De Metro Carioca")
-    );
+    Memory.propriedades.set(i++, new PropriedadeEstacao(i, "Aeroporto Galeão"));
     Memory.propriedades.set(
       i++,
       new Propriedade(
@@ -195,8 +226,8 @@ export class Memory {
         "Laranja",
         1000,
         140,
-        1800
-      )
+        1800,
+      ),
     );
     Memory.propriedades.set(
       i++,
@@ -207,8 +238,8 @@ export class Memory {
         "Laranja",
         1000,
         160,
-        2000
-      )
+        2000,
+      ),
     );
     Memory.propriedades.set(
       i++,
@@ -216,30 +247,30 @@ export class Memory {
         i,
         "Estacionamento Grátis",
         "Estacionamento",
-        "#ffc087"
-      )
+        "#ffc087",
+      ),
     );
 
     // --- GRUPO 5 ---
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Ipanema", "#FF0000", "Vermelho", 1500, 180, 2200)
+      new Propriedade(i, "Ipanema", "#FF0000", "Vermelho", 1500, 180, 2200),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeCompanhia(i, "Companhia de Gás")
+      new PropriedadeCompanhia(i, "Companhia de Gás"),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Leblon", "#FF0000", "Vermelho", 1500, 180, 2200)
+      new Propriedade(i, "Leblon", "#FF0000", "Vermelho", 1500, 180, 2200),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Copacabana", "#FF0000", "Vermelho", 1500, 200, 2400)
+      new Propriedade(i, "Copacabana", "#FF0000", "Vermelho", 1500, 200, 2400),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeSorte(i, "Via De Automóveis", "Sorte")
+      new PropriedadeSorte(i, "Via De Automóveis", "Sorte"),
     );
 
     // --- GRUPO 6 ---
@@ -252,38 +283,54 @@ export class Memory {
         "Amarelo",
         1500,
         220,
-        2600
-      )
+        2600,
+      ),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Pacaembu", "#FFFF00", "Amarelo", 1500, 220, 2600)
+      new Propriedade(i, "Pacaembu", "#FFFF00", "Amarelo", 1500, 220, 2600),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeEstacao(i, "Estação de Metrô Consolação")
+      new PropriedadeEstacao(i, "Aeroporto de Guarulhos"),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Ibirapuera", "#FFFF00", "Amarelo", 1500, 200, 2800)
+      new Propriedade(i, "Ibirapuera", "#FFFF00", "Amarelo", 1500, 200, 2800),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeNula(i, "Vá para a Cadeia", "Prisao", "#111184")
+      new PropriedadeNula(i, "Vá para a Cadeia", "Prisao", "#111184"),
     );
 
     // --- GRUPO 7 ---
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Barra da Tijuca", "#008000", "Verde", 2000, 260, 3000)
+      new Propriedade(
+        i,
+        "Barra da Tijuca",
+        "#008000",
+        "Verde",
+        2000,
+        260,
+        3000,
+      ),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Jardim Botânico", "#008000", "Verde", 2000, 260, 3000)
+      new Propriedade(
+        i,
+        "Jardim Botânico",
+        "#008000",
+        "Verde",
+        2000,
+        260,
+        3000,
+      ),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeEstacao(i, "Estação de Metrô República")
+      new PropriedadeEstacao(i, "Aeroporto de Viracopos"),
     );
     Memory.propriedades.set(
       i++,
@@ -294,30 +341,38 @@ export class Memory {
         "Verde",
         2000,
         280,
-        3200
-      )
+        3200,
+      ),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeSorte(i, "Via Espacial", "Sorte")
+      new PropriedadeSorte(i, "Via Espacial", "Sorte"),
     );
 
     // --- GRUPO 8 ---
     Memory.propriedades.set(
       i++,
-      new PropriedadeCompanhia(i, "Companhia Elétrica")
+      new PropriedadeCompanhia(i, "Companhia Elétrica"),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Av. Morumbi", "#1C4E9A", "Azul", 2000, 350, 3500)
+      new Propriedade(i, "Av. Morumbi", "#1C4E9A", "Azul", 2000, 350, 3500),
     );
     Memory.propriedades.set(
       i++,
-      new PropriedadeTaxa(i, "Taxa De Riqueza", 1000)
+      new PropriedadeTaxa(i, "Taxa De Riqueza", 1000),
     );
     Memory.propriedades.set(
       i++,
-      new Propriedade(i, "Rua Oscar Freire", "#1C4E9A", "Azul", 2000, 500, 4000)
+      new Propriedade(
+        i,
+        "Rua Oscar Freire",
+        "#1C4E9A",
+        "Azul",
+        2000,
+        500,
+        4000,
+      ),
     );
 
     // --- PASSO CRÍTICO: GARANTIA DE INTEGRIDADE ---
@@ -327,18 +382,5 @@ export class Memory {
     });
 
     this.isPropertyInitialized = true;
-
-    // --- DEBUG PARA VOCÊ CONFERIR NO TERMINAL DO SERVIDOR ---
-    // --- DEBUG PARA VOCÊ CONFERIR NO TERMINAL DO SERVIDOR ---
-    // console.log("--- TABULEIRO INICIALIZADO ---");
-    // console.log(`Total: ${Memory.propriedades.size} propriedades`);
-    // console.log(`==============================`);
-
-    // USANDO JSON.STRINGIFY PARA VER OS DETALHES
-    const todasProps = Array.from(Memory.propriedades.values());
-    // console.log(JSON.stringify(todasProps, null, 2));
-
-    // console.log(`==============================`);
-    // console.log("------------------------------");
   }
 }

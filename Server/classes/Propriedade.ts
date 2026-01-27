@@ -2,6 +2,8 @@ export class Propriedade {
   id: number;
   name: string;
   ownerUsername: string | null = null;
+  weather: string = "clean";
+  hour: string = "day";
   acummulatedCapital: number = 0;
   themeColor: string;
   color: string;
@@ -97,5 +99,12 @@ export class Propriedade {
   }
   resetCapital(): void {
     this.acummulatedCapital = 0;
+  }
+  randomWeather(): void {
+    const rain = Math.random() < 0.3;
+    rain ? this.weather = "rainy" : this.weather = "clear";
+  }
+  setHour(hour: string): void {
+    if(hour === "dia" || hour === "noite") this.hour = hour;
   }
 }

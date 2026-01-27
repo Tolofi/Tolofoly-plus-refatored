@@ -4,6 +4,7 @@ import { Server, Socket } from "socket.io";
 import { Carta } from "./CartaSorte";
 import { gameVersion } from "./Version";
 import { Propriedade } from "./Propriedade";
+import { JornalService } from "./JornalService";
 
 // Interface para organizar o estado do leilão
 interface AuctionState {
@@ -26,11 +27,17 @@ export class SocketAdmin {
   private currentTurnUser: string = "";
   private currentRound: number = 1;
   private dadoAtual: number = 0;
+  private leilaoAprovadoTurnos: number = 0;
 
-  // 🔥 NOVO: Flag para impedir reinício se o jogo já estiver rolando
+  // Controle de Dia/Noite
+  private dayTurns: number = 0;
+  private isDay: boolean = true;
+  // REMOVIDO: private maxDayTurns... (Causava o bug pois iniciava com 0)
+
+  // Contador de rodadas para o Jornal
+  private rodadasTotais: number = 0;
+
   private isGameRunning: boolean = false;
-
-  // 🔥 NOVO: Contador para garantir leilão (Sistema de Piedade)
   private turnosSemLeilao: number = 0;
 
   // --- ESTADO GLOBAL DO LEILÃO ---
@@ -69,29 +76,25 @@ export class SocketAdmin {
   // ============================
 
   private iniciarLeilao() {
-    // 1. Filtrar propriedades sem dono
     const propriedadesSemDono = Memory.getAllPropertiesByArray().filter(
       (propriedade) =>
         propriedade.getOwner() === null &&
         propriedade.getPrice() != null &&
-        propriedade.getPrice() > 1,
+        propriedade.getPrice()! > 1,
     );
 
     if (propriedadesSemDono.length === 0) return;
 
-    // 2. Sorteio
     const indiceAleatorio = Math.floor(
       Math.random() * propriedadesSemDono.length,
     );
     const propriedadeSorteada = propriedadesSemDono[indiceAleatorio];
 
-    // 3. Resetar Estado
     this.auctionState.active = true;
     this.auctionState.propriedade = propriedadeSorteada;
     this.auctionState.totalBids = 0;
     this.auctionState.bids.clear();
 
-    // 4. Anúncio e Preparação (5s)
     this.io.emit("leilaoAnuncio", {
       propriedade: propriedadeSorteada,
       mensagem: "O leilão começará em 5 segundos...",
@@ -105,7 +108,7 @@ export class SocketAdmin {
   }
 
   private comecarLeilaoValendo(propriedade: Propriedade) {
-    const DURACAO_INICIAL = 10000; // 10 segundos
+    const DURACAO_INICIAL = 10000;
     this.auctionState.endTime = Date.now() + DURACAO_INICIAL;
 
     this.io.emit("leilaoIniciado", {
@@ -124,8 +127,9 @@ export class SocketAdmin {
     const jogador = Memory.getUsernameBySocketId(socket.id);
     if (!jogador) return;
 
+    const precoPropriedade = this.auctionState.propriedade.getPrice() || 0;
     const custoAtual =
-      this.auctionState.propriedade.getPrice() +
+      precoPropriedade +
       this.auctionState.totalBids * this.auctionState.bidPrice +
       this.auctionState.bidPrice;
 
@@ -140,7 +144,6 @@ export class SocketAdmin {
       jogador.getUsername(),
     );
 
-    // --- LÓGICA DE TEMPO (ANTI-SNIPER) CORRIGIDA ---
     const agora = Date.now();
     const tempoRestanteReal = this.auctionState.endTime - agora;
 
@@ -150,17 +153,13 @@ export class SocketAdmin {
 
       if (this.auctionState.timer) clearTimeout(this.auctionState.timer);
 
-      // Recalcula o novo tempo restante exato para enviar ao front
       const novoTempoRestante = this.auctionState.endTime - Date.now();
-
       this.agendarFimDoLeilao(novoTempoRestante);
 
-      // ALTERADO: Envia o delta de tempo restante
       this.io.emit("leilaoTempoEstendido", {
         novoTempoRestante: novoTempoRestante,
       });
     }
-    // ------------------------------------------------
 
     this.io.emit("leilaoNovoLance", {
       username: jogador.getUsername(),
@@ -181,7 +180,6 @@ export class SocketAdmin {
 
     const prop = this.auctionState.propriedade!;
 
-    // --- CENÁRIO 1: NINGUÉM DEU LANCE ---
     if (this.auctionState.totalBids === 0) {
       this.io.emit("boardVencedor", {
         title: "Leilão Encerrado",
@@ -194,7 +192,6 @@ export class SocketAdmin {
       return;
     }
 
-    // --- CENÁRIO 2: TEM VENCEDOR ---
     const vencedorUsername = this.auctionState.bids.get(
       this.auctionState.totalBids,
     );
@@ -203,41 +200,28 @@ export class SocketAdmin {
       const custoLances =
         this.auctionState.totalBids * this.auctionState.bidPrice;
 
-      // Realiza a compra
       Banco.comprarPropriedade(prop.getId(), vencedorUsername);
 
       const vencedor = Memory.getPlayerByUsername(vencedorUsername);
 
-      // Desconta o valor extra dos lances (ágio)
       if (vencedor) {
         vencedor.deduzirSaldo(custoLances);
       }
 
-      const valorTotalPago = prop.getPrice() + custoLances;
+      const valorTotalPago = (prop.getPrice() || 0) + custoLances;
 
-      // Anuncia no Board
       this.io.emit("boardVencedor", {
         title: "Temos um Vencedor!",
         content: `${vencedorUsername} arrematou ${prop.getName()} por R$ ${valorTotalPago}!`,
       });
 
-      // Aguarda 2 segundos para dar tempo do visual do leilão fechar
       setTimeout(() => {
         if (vencedor) {
-          // 1. Avisa o frontend do vencedor para mostrar recibo/animação
           this.io.to(vencedor.socketId).emit("leilaoGanho", valorTotalPago);
-
-          // 2. 🔥 Atualiza o estado individual do jogador (Saldo na tela dele)
           this.emitPlayerUpdate(vencedorUsername);
         }
-
-        // 3. Atualiza as cores das propriedades no tabuleiro
         this.emitPropertiesUpdate();
-
-        // 4. Atualiza a lista de todos os jogadores
         this.sendAllPlayers();
-
-        // 5. Encerra modal nos celulares
         this.io.emit("leilaoFim");
       }, 2000);
     }
@@ -291,7 +275,6 @@ export class SocketAdmin {
 
   private registerEvents() {
     this.io.on("connection", (socket: Socket) => {
-      // --- EVENTOS DO LEILÃO ---
       socket.on("auctionDoBid", () => {
         this.processarLance(socket);
       });
@@ -311,10 +294,6 @@ export class SocketAdmin {
       });
       this.sendAllPlayers();
       this.emitPropertiesUpdate();
-
-      // ============================
-      // REGISTRO & RECONEXÃO
-      // ============================
 
       socket.on("reconnectPlayer", (username: string) => {
         const player = Memory.getPlayerByUsername(username);
@@ -350,16 +329,14 @@ export class SocketAdmin {
         }
       });
 
-      socket.on("registerPlayer", (username: string) => {
-        // 1. Verificar se o jogador já existe
+      socket.on("registerPlayer", (rawUsername: string) => {
+        const username = rawUsername.trim();
         const playersArray = Array.from(Memory.players.values());
         const ghostPlayer = playersArray.find((p) => p.username === username);
 
         if (ghostPlayer) {
-          // --- CENÁRIO A: JOGADOR JÁ EXISTE (RECUPERAÇÃO) ---
           console.log(`♻️ Recuperando sessão para: ${username}`);
 
-          // 1. Remove o mapeamento do socket antigo
           const oldSocketId = Memory.getSocketIdByUsername(username);
           if (oldSocketId) {
             const oldSocket = this.io.sockets.sockets.get(oldSocketId);
@@ -367,50 +344,35 @@ export class SocketAdmin {
             Memory.playerBySocketId.delete(oldSocketId);
           }
 
-          // 2. ATUALIZA O JOGADOR EXISTENTE
-          ghostPlayer.socketId = socket.id; // Atualiza a ref no objeto
-          Memory.playerBySocketId.set(socket.id, ghostPlayer); // Atualiza o Map
+          ghostPlayer.socketId = socket.id;
+          Memory.playerBySocketId.set(socket.id, ghostPlayer);
 
           this.atualizarTerminal();
           socket.emit("registerSuccess");
-
-          // Envia os dados ATUAIS (com dinheiro e props antigos)
           socket.emit("reconnectSuccess", ghostPlayer.toDTO());
 
           const propAtual = Memory.getPropriedadeById(ghostPlayer.getPosicao());
           socket.emit("currentRoundData", { propriedade: propAtual });
 
-          // Atualiza todos
           this.sendAllPlayers();
           this.emitPlayerUpdate(username);
           this.emitPropertiesUpdate();
 
           this.emitPersonalHistory(username, `👋 Você retornou ao jogo.`);
 
-          // ========================================================
-          // 🔄 CORREÇÃO: SINCRONIA DE TURNO
-          // ========================================================
-
-          // 1. Se for a vez do jogador que reconectou:
           if (this.currentTurnUser === username) {
-            console.log(`👉 Devolvendo a vez para ${username}`);
             socket.emit("yourTurn", {
               hasRolled: this.currentTurnHasRolled,
               lastValue: this.dadoAtual,
             });
           }
 
-          // 2. Sempre avise quem é o jogador da vez (seja ele ou outro)
-          // Isso garante que a UI mostre "Vez de Fulano" corretamente
           if (this.currentTurnUser) {
             socket.emit("turn_update", {
               playerDaVez: this.currentTurnUser,
             });
           }
-          // ========================================================
         } else {
-          // --- CENÁRIO B: NOVO JOGADOR ---
-          // ... (Seu código original de novo jogador permanece igual)
           const success = Memory.registerPlayer(socket.id, username);
 
           if (success) {
@@ -436,12 +398,7 @@ export class SocketAdmin {
         }
       });
 
-      // ============================
-      // READY / START (CORRIGIDO)
-      // ============================
-
       socket.on("readyForInit", () => {
-        // 1. Se o jogo JÁ ESTÁ RODANDO, ignora o início e apenas sincroniza
         if (this.isGameRunning) {
           const username = Memory.getUsernameBySocketId(socket.id)?.username;
 
@@ -449,7 +406,11 @@ export class SocketAdmin {
             const player = Memory.getPlayerByUsername(username);
             if (player) {
               const propAtual = Memory.getPropriedadeById(player.getPosicao());
+              // socket.emit("playerUpdate", player.toDTO());
               socket.emit("currentRoundData", { propriedade: propAtual });
+              this.sendAllPlayers();
+              this.emitPlayerUpdate(username);
+              this.emitPropertiesUpdate();
             }
           }
 
@@ -469,11 +430,7 @@ export class SocketAdmin {
             p.getUsername(),
           );
           socket.emit("allPlayersUpdate", playerNames);
-
-          // 🔥 EVENTO EXPLÍCITO PARA LIBERAR O FRONT
           socket.emit("gameAlreadyRunning");
-
-          // 🔥 AVISA DE QUEM É A VEZ
           this.io.emit("turn_update", {
             playerDaVez: this.currentTurnUser,
           });
@@ -490,7 +447,7 @@ export class SocketAdmin {
         const totalProntos = this.readyPlayers.size;
 
         if (totalProntos === totalJogadores && totalJogadores > 0) {
-          this.isGameRunning = true; // 🔥 TRAVA O JOGO PARA NÃO REINICIAR
+          this.isGameRunning = true;
 
           const players = Array.from(Memory.players.values());
 
@@ -499,13 +456,22 @@ export class SocketAdmin {
           const socketId = Memory.getSocketIdByUsername(firstPlayer.username);
 
           if (!socketId) return;
-
+          Memory.randomizeWeather();
+          Memory.setGlobalHour("dia");
+          this.dayTurns = 0; // Inicia zerado
           this.io.emit("gameStarted");
 
           this.currentTurnUser = firstPlayer.username;
           this.currentTurnHasRolled = false;
 
-          this.io.to(socketId).emit("yourTurn", { hasRolled: false });
+          setTimeout(() => {
+            this.io.to(socketId).emit("yourTurn", { hasRolled: false });
+
+            // Envia atualização de estado para garantir que ele tenha os dados
+            this.io.to(socketId).emit("turn_update", {
+              playerDaVez: this.currentTurnUser,
+            });
+          }, 1000);
           this.dadoAtual = Banco.rolarDados();
         }
       });
@@ -517,16 +483,12 @@ export class SocketAdmin {
         }
       });
 
-      // ============================
-      // TURNO
-      // ============================
-
-      socket.on("sync_game", () => {
-        const username = Memory.getUsernameBySocketId(socket.id)?.username;
-
+      socket.on("sync_game", (data) => {
+        const username = data;
         if (username) {
           const player = Memory.getPlayerByUsername(username);
           if (player) {
+            socket.emit("playerUpdate", player.toDTO());
             const propAtual = Memory.getPropriedadeById(player.getPosicao());
             socket.emit("currentRoundData", { propriedade: propAtual });
           }
@@ -550,6 +512,7 @@ export class SocketAdmin {
         socket.emit("allPlayersUpdate", playerNames);
       });
 
+      // --- [CORREÇÃO AQUI] Lógica de Finalizar Turno ---
       socket.on("finishTurn", () => {
         const info = Memory.getUsernameBySocketId(socket.id);
         if (!info) return;
@@ -559,6 +522,20 @@ export class SocketAdmin {
 
         this.currentTurnIndex = (this.currentTurnIndex + 1) % players.length;
 
+        // 📰 SISTEMA DE JORNAL & RODADAS
+        // Se voltou ao primeiro jogador (index 0), significa que UMA RODADA COMPLETA passou
+        if (this.currentTurnIndex === 0) {
+          this.rodadasTotais++;
+          console.log(`🔄 Fim da Rodada ${this.rodadasTotais}`);
+
+          // A cada 5 rodadas completas, gera uma edição
+          if (this.rodadasTotais > 0 && this.rodadasTotais % 5 === 0) {
+            console.log("📰 Gerando edição do jornal...");
+            const noticia = JornalService.gerarEdicao();
+            this.io.emit("showNewspaper", noticia);
+          }
+        }
+
         const nextPlayer = players[this.currentTurnIndex];
         const nextSocketId = Memory.getSocketIdByUsername(nextPlayer.username);
         if (!nextSocketId) return;
@@ -566,29 +543,58 @@ export class SocketAdmin {
         this.currentTurnUser = nextPlayer.username;
         this.currentTurnHasRolled = false;
 
+        // ☀️🌙 CORREÇÃO LÓGICA DIA/NOITE
+        this.dayTurns++;
+
+        // Verifica o tamanho real dos jogadores agora
+        const totalJogadores = Memory.players.size;
+
+        // Só troca o dia se TODOS jogaram (1 rodada completa)
+        if (this.dayTurns >= totalJogadores) {
+          this.dayTurns = 0;
+          this.isDay = !this.isDay;
+          const novoHorario = this.isDay ? "dia" : "noite";
+
+          Memory.setGlobalHour(novoHorario);
+          Memory.randomizeWeather();
+          this.emitPropertiesUpdate();
+
+          const icon = this.isDay ? "☀️" : "🌙";
+          this.io.emit(
+            "notification",
+            `${icon} O horário mudou para: ${novoHorario.toUpperCase()}`,
+          );
+        }
+
         this.io.to(nextSocketId).emit("yourTurn", { hasRolled: false });
         this.io.emit("turn_update", { playerDaVez: nextPlayer.username });
         this.currentRound++;
 
-        // --- LÓGICA DE PROBABILIDADE (20% ou 10 Rounds) ---
+        // LEILÃO (Mecânica de Piedade/Aleatória)
         this.turnosSemLeilao++;
-
-        // Sorte: 1 em 5 (20%)
         const sorte = Math.floor(Math.random() * 10) + 1 === 1;
-        // Garantia: Passou de 10 turnos
         const garantia = this.turnosSemLeilao >= 10;
 
-        if (sorte || garantia) {
-          console.log(
-            garantia ? "Leilão Forçado (10T)" : "Leilão por Sorte (20%)",
-          );
+        if ((sorte || garantia) && this.leilaoAprovadoTurnos === 0) {
+          this.leilaoAprovadoTurnos = 1;
+          this.io.emit("leilaoAprovado", {
+            title: "LEILÃO APROVADO!",
+            content: "O governo aprovou o leilão de uma propriedade...",
+          });
+        } else if (
+          this.leilaoAprovadoTurnos > 0 &&
+          this.leilaoAprovadoTurnos < 3
+        ) {
+          this.leilaoAprovadoTurnos++;
+        } else if (this.leilaoAprovadoTurnos === 3) {
           this.iniciarLeilao();
           this.turnosSemLeilao = 0;
+          this.leilaoAprovadoTurnos = 0;
         }
       });
 
       // ============================
-      // DADO / MOVIMENTO / PRISÃO
+      // DADO / MOVIMENTO / PRISÃO / VENDAS / ETC (Mantidos iguais)
       // ============================
 
       socket.on("tentativaPrisao", ({ d1, d2 }) => {
@@ -641,9 +647,9 @@ export class SocketAdmin {
             info.username,
             `🚶 ${Memory.getPropriedadeById(
               posicaoAntiga,
-            ).getName()} -> ${Memory.getPropriedadeById(
+            )?.getName()} -> ${Memory.getPropriedadeById(
               player.getPosicao(),
-            ).getName()}`,
+            )?.getName()}`,
           );
 
           this.emitPlayerUpdate(info.username);
@@ -718,10 +724,6 @@ export class SocketAdmin {
         Banco.soltarJogadorForcado(info.getUsername());
       });
 
-      // ============================
-      // SAIR DO JOGO (Resetar Player)
-      // ============================
-
       socket.on("leaveGame", () => {
         const player = Memory.getUsernameBySocketId(socket.id);
 
@@ -786,12 +788,12 @@ export class SocketAdmin {
           `${username} saiu do jogo. Propriedades liberadas!`,
         );
 
-        // 🔥 Se não tiver mais ninguém jogando, reseta a flag para poder começar novo jogo
         if (Memory.players.size === 0) {
           this.isGameRunning = false;
           this.readyPlayers.clear();
           this.currentTurnHasRolled = false;
           this.turnosSemLeilao = 0;
+          this.rodadasTotais = 0;
         }
       });
 
@@ -825,9 +827,9 @@ export class SocketAdmin {
           player.username,
           `🚶 ${Memory.getPropriedadeById(
             posicaoAntiga,
-          ).getName()} -> ${Memory.getPropriedadeById(
+          )?.getName()} -> ${Memory.getPropriedadeById(
             player.getPosicao(),
-          ).getName()}`,
+          )?.getName()}`,
         );
 
         if (posicaoAntiga > player.getPosicao() && qtd >= 0) {
@@ -894,9 +896,9 @@ export class SocketAdmin {
           player.username,
           `🚶 ${Memory.getPropriedadeById(
             posicaoAntiga,
-          ).getName()} -> ${Memory.getPropriedadeById(
+          )?.getName()} -> ${Memory.getPropriedadeById(
             player.getPosicao(),
-          ).getName()}`,
+          )?.getName()}`,
         );
 
         if (posicaoAntiga > player.getPosicao() && qtd >= 0) {
@@ -985,9 +987,9 @@ export class SocketAdmin {
           info.username,
           `🚶 ${Memory.getPropriedadeById(
             posicaoAntiga,
-          ).getName()} -> ${Memory.getPropriedadeById(
+          )?.getName()} -> ${Memory.getPropriedadeById(
             player.getPosicao(),
-          ).getName()}`,
+          )?.getName()}`,
         );
 
         if (posicaoAntiga > player.getPosicao() && !player.getPreso()) {
@@ -1016,7 +1018,9 @@ export class SocketAdmin {
         "receipt",
         (data: { remetente: string; valor: number; destinatario: string }) => {
           const currentSocket = Memory.getSocketIdByUsername(data.remetente);
-          this.io.to(currentSocket!).emit("transactionReceipt", data);
+          if (currentSocket) {
+            this.io.to(currentSocket).emit("transactionReceipt", data);
+          }
         },
       );
 
@@ -1132,7 +1136,7 @@ export class SocketAdmin {
       socket.on("getMessage", async () => {
         const info = Memory.getUsernameBySocketId(socket.id)?.getUsername();
         if (!info) return;
-        const mensagem = Carta.getCardRandomly(info);
+        const mensagem = await Carta.getCardRandomly(info);
 
         socket.emit("aiMessage", mensagem.mensagemPrivada);
         socket.emit("publicAiMessage", mensagem.mensagemPublica);
@@ -1196,9 +1200,6 @@ export class SocketAdmin {
             socket.emit("playerTrasactionResult", true);
           }
           const destinySocket = Memory.getSocketIdByUsername(destinyUsername);
-          const sendingSocket = Memory.getSocketIdByUsername(
-            senderPlayer.getUsername(),
-          );
 
           const resultado = Banco.transacaoMonetaria(
             valor,
@@ -1206,7 +1207,6 @@ export class SocketAdmin {
             destinyUsername,
           );
 
-          // socket.emit("notification", resultado.msgDe);
           if (destinySocket) {
             this.io.to(destinySocket).emit("notification", resultado.msgPara);
           }
@@ -1241,9 +1241,6 @@ export class SocketAdmin {
             socket.emit("playerTrasactionResult", true);
           }
           const destinySocket = Memory.getSocketIdByUsername(destinyUsername);
-          const sendingSocket = Memory.getSocketIdByUsername(
-            senderPlayer.getUsername(),
-          );
 
           const resultado = Banco.transacaoMonetaria(
             valor,
@@ -1251,7 +1248,6 @@ export class SocketAdmin {
             destinyUsername,
           );
 
-          // socket.emit("notification", resultado.msgDe);
           if (destinySocket) {
             this.io.to(destinySocket).emit("notification", resultado.msgPara);
           }
@@ -1296,7 +1292,7 @@ export class SocketAdmin {
           });
 
           this.io.emit("propertiesUpdate", Memory.getAllPropertiesByArray());
-          socket.emit("playerUpdate", player);
+          socket.emit("playerUpdate", player.toDTO());
           this.sendAllPlayers();
 
           this.emitPersonalHistory(
@@ -1316,7 +1312,10 @@ export class SocketAdmin {
 
         socket.emit("notification", tentativa);
         this.io.emit("propertiesUpdate", Memory.getAllPropertiesByArray());
-        socket.emit("playerUpdate", Memory.getUsernameBySocketId(socket.id));
+        socket.emit(
+          "playerUpdate",
+          Memory.getPlayerByUsername(username)?.toDTO(),
+        );
         this.sendAllPlayers();
 
         this.emitPersonalHistory(username, `🏗️ ${tentativa}`);
@@ -1330,7 +1329,10 @@ export class SocketAdmin {
 
         socket.emit("notification", tentativa);
         this.io.emit("propertiesUpdate", Memory.getAllPropertiesByArray());
-        socket.emit("playerUpdate", Memory.getUsernameBySocketId(socket.id));
+        socket.emit(
+          "playerUpdate",
+          Memory.getPlayerByUsername(username)?.toDTO(),
+        );
         this.sendAllPlayers();
 
         this.emitPersonalHistory(username, `🏚️ ${tentativa}`);

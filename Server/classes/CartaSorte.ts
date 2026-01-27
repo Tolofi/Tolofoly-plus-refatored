@@ -175,7 +175,7 @@ export class Carta {
       true,
     ],
     [
-      "${jogadorPrincipal}, você ganhou um voo de balão panorâmico, mas o vento te levou para longe. Avance para a Estação de Trem mais distante.",
+      "${jogadorPrincipal}, você ganhou um voo de balão panorâmico, mas o vento te levou para longe. Avance para o aeroporto mais distante.",
       false,
     ],
     [
@@ -442,7 +442,7 @@ export class Carta {
       false,
     ],
     [
-      "${jogadorPrincipal}, você decidiu dar um 'ghosting' nos seus boletos e problemas e sumiu do mapa sem deixar rastros. Pegue o primeiro trem. Avance para a Estação de Trem mais próxima.",
+      "${jogadorPrincipal}, você decidiu dar um 'ghosting' nos seus boletos e problemas e sumiu do mapa sem deixar rastros. Pegue o proximo voo. Avance para o aeroporto mais próximo.",
       false,
     ],
     [
@@ -562,7 +562,7 @@ export class Carta {
       false,
     ],
     [
-      "${jogadorPrincipal}, você explorou um bueiro aberto e descobriu um túnel de metrô abandonado da década de 70 que corta metade da cidade. Vá direto para a Estação mais distante sem pagar passagem.",
+      "${jogadorPrincipal}, você perdeu seu voo, mas por sorte você fez um acordo com um francês e ele te deu a passagem em troco de um guaraná antartica quando você alegou que pra gringo é mais caro. Pegue um voo para o próximo aeroporto.",
       false,
     ],
     [
@@ -916,7 +916,7 @@ export class Carta {
       true,
     ],
     [
-      "${jogadorPrincipal}, seu passaporte estava vencido bem na hora do embarque. A viagem dos sonhos virou pesadelo. Volte para o Aeroporto/Estação anterior.",
+      "${jogadorPrincipal}, seu passaporte estava vencido bem na hora do embarque. A viagem dos sonhos virou pesadelo. Volte para o Aeroporto anterior.",
       false,
     ],
     [

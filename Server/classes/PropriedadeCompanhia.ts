@@ -2,7 +2,7 @@ import { Propriedade } from "./Propriedade";
 
 export class PropriedadeCompanhia extends Propriedade {
     constructor(id: number, nome: string, color: string = "Companhia") {
-        super(id, nome, "#d3d3d3", color, null, null, 1500, [200, 400, 800, 1600]);
+        super(id, nome, "#787878", color, null, null, 1500, [200, 400, 800, 1600]);
     }
 
     override getRent(numberOfCompanies?: number): number | null {
