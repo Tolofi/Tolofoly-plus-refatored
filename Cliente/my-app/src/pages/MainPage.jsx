@@ -147,15 +147,21 @@ export const MainPage = () => {
   function closeAndSendModal(isForward) {
     setIsProcessing(true);
 
+    // CORREÇÃO: Forçar conversão para Inteiro
+    const quantidade = parseInt(modalQtd, 10);
+
     if (modalVariant === "move") {
-      modalQtd % 5 === 0 ? setIsMessageRead(false) : setIsMessageRead(true);
+      // Usa a variável convertida 'quantidade'
+      quantidade % 5 === 0 ? setIsMessageRead(false) : setIsMessageRead(true);
+
       if (isForward === true) {
-        socket.emit("moveByPlayer", modalQtd);
+        socket.emit("moveByPlayer", quantidade);
       } else {
-        socket.emit("moveByPlayer", modalQtd * -1);
+        socket.emit("moveByPlayer", quantidade * -1);
       }
     } else if (modalVariant === "removeMoney") {
-      socket.emit("bankPayment", modalQtd);
+      // Usa a variável convertida 'quantidade'
+      socket.emit("bankPayment", quantidade);
     } else if (modalVariant === "getMoney") {
       bankMoneyRequest();
     }
@@ -175,10 +181,13 @@ export const MainPage = () => {
   }
 
   function bankMoneyRequest() {
-    socket.emit("getMoneyByPlayer", modalQtd);
+    // CORREÇÃO: Forçar conversão para Número aqui também
+    const valorReal = Number(modalQtd); 
+    
+    socket.emit("getMoneyByPlayer", valorReal);
     setReciboShow({
       status: true,
-      valor: modalQtd,
+      valor: valorReal,
       destinatario: username,
       remetente: "Banco",
     });
@@ -238,7 +247,7 @@ export const MainPage = () => {
     if (savedUsername && !initialStateUsername) {
       socket.emit("reconnectPlayer", savedUsername);
     } else {
-      socket.emit("sync_game");
+      socket.emit("sync_game", username);
     }
 
     const unlockUI = () => {
@@ -326,11 +335,14 @@ export const MainPage = () => {
     function onReconnectSuccess(playerData) {
       setIsConnected(true);
       useGameStore.getState().setMeAsObject(playerData);
-      if (useGameStore.getState().setUsername) {
-        useGameStore.getState().setUsername(playerData.username);
+
+      // CORREÇÃO: Mudar de setUsername para setNome
+      if (useGameStore.getState().setNome) {
+        useGameStore.getState().setNome(playerData.username);
       }
+
       localStorage.setItem("monopoly_username", playerData.username);
-      socket.emit("sync_game");
+      socket.emit("sync_game", username);
       unlockUI();
     }
 
@@ -448,10 +460,14 @@ export const MainPage = () => {
     }
 
     function onCurrentRoundData(data) {
+      console.log("onCurrentRoundData recebido:", data);
       useGameStore.getState().setCurrentProperty(data.propriedade);
     }
 
     function onAiMessage(data) {
+      // ADICIONE ESTA LINHA: Libera a interface após receber a carta
+      setIsProcessing(false);
+
       data && setIsMessageRead(false);
       data ? setLuckyMessage(data) : setLuckyMessage("Algo deu errado.");
     }

@@ -19,6 +19,7 @@ import { Fullscreen } from "@boengli/capacitor-fullscreen";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Leilao } from "./pages/Leilao";
+import { MinhasPropriedades } from "./pages/MinhasPropriedades";
 
 const RotasAnimadas = () => {
   const location = useLocation();
@@ -34,6 +35,7 @@ const RotasAnimadas = () => {
         <Route path="/board" element={<AuxiliarScreen />} />
         <Route path="/outdated" element={<Outdated />} />
         <Route path="/leilao" element={<Leilao />} />
+        <Route path="/propriedades" element={<MinhasPropriedades />} />
       </Routes>
     </AnimatePresence>
   );

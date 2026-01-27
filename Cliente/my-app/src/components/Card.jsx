@@ -141,7 +141,7 @@ export const Card = ({ onThrow, playerName = "JOÃO", balance = "1.500" }) => {
           />
 
           {/* SALDO */}
-          <div
+          {/* <div
             style={{
               fontSize: 14,
               fontWeight: "bold",
@@ -149,7 +149,7 @@ export const Card = ({ onThrow, playerName = "JOÃO", balance = "1.500" }) => {
             }}
           >
             R$ {balance}
-          </div>
+          </div> */}
 
           {/* NOME */}
           <div

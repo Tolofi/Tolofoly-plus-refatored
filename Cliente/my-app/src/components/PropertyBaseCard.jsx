@@ -1,5 +1,8 @@
 import React from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
+
+// IMPORTANTE: Importe os componentes que criamos anteriormente
+import { Sky } from "./scenario/Sky"; // Ajuste o caminho conforme seu projeto
 
 export const NuPropertyCard = ({ propriedade }) => {
   if (!propriedade || !propriedade.rent) return null;
@@ -19,15 +22,24 @@ export const NuPropertyCard = ({ propriedade }) => {
   };
 
   const nomeCor = propriedade.color;
-  const [textActiveColor, activeBackground] = colors[nomeCor] || [
-    "#333",
-    "#eee",
-  ];
+  const [textActiveColor] = colors[nomeCor] || ["#333", "#eee"];
   const mainColor = propriedade.themeColor || textActiveColor;
 
-  const isEstacao = nomeCor === "Estacao";
-  const isCompanhia = nomeCor === "Companhia";
-  const isSpecialType = isEstacao || isCompanhia;
+  // --- CONFIGURAÇÃO NOITE/CLIMA ---
+  // Defina variáveis para controlar o estado
+  const hour = propriedade.hour; // "dia" ou "noite"
+  const weather = propriedade.weather; // "clear" ou "rainy"
+
+  // LÓGICA PRINCIPAL: O ambiente é "escuro" se for noite OU se estiver chovendo
+  const isDarkContext = hour === "noite" || weather === "rainy";
+
+  // Estilo do Glow: Sombra colorida suave + brilho aumentado
+  const glowStyle = isDarkContext
+    ? {
+        textShadow: `0 0 4px ${mainColor}, 0 0 10px ${mainColor}`,
+        filter: "brightness(1.1)", // Aumenta um pouco o brilho da cor base
+      }
+    : {};
 
   return (
     <motion.div
@@ -37,81 +49,185 @@ export const NuPropertyCard = ({ propriedade }) => {
       animate={{ x: 0 }}
       exit={{ x: "100vh" }}
       transition={{ ease: "easeInOut", duration: 0.5 }}
-      style={{ border: `2px solid ${mainColor}` }}
+      style={{
+        overflow: "hidden",
+        backgroundColor: "transparent",
+        fontFamily: "Nunito, sans-serif",
+        position: "relative",
+        margin: "0 auto"
+      }}
     >
+      {/* === BACKGROUND: CÉU === */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      >
+        {/* Passamos as variáveis hour e weather para o Sky reagir */}
+        <Sky hour={hour} cloudsNumber={3} weather={weather} />
+      </div>
+
       {/* HEADER */}
       <div
         className="nu-header"
         style={{
-          backgroundColor: mainColor,
           color: "#fff",
+          padding: "10px",
+          textAlign: "center",
+          zIndex: 1,
+          position: "relative",
         }}
       >
-        <div className="nu-tag-container"></div>
-        <h2 className="nu-title" style={{ color: "#fff" }}>
+        <h2
+          className="nu-title"
+          style={{
+            margin: 0,
+            color: mainColor,
+            fontSize: "1.5rem",
+            fontWeight: "bold",
+            // Aplica o glow se for noite OU chuva
+            ...glowStyle,
+          }}
+        >
           {propriedade.name}
         </h2>
       </div>
 
-      {/* LISTA DE ALUGUÉIS */}
+      {/* LISTA DE DETALHES */}
       <div
         className="nu-rent-list"
         style={{
           position: "relative",
+          zIndex: 1,
           display: "flex",
           alignItems: "center",
           flexDirection: "column",
-          backgroundColor: "#fff",
+          padding: "10px 0",
+          // Fundo um pouco mais escuro se for contexto escuro (opcional, mantive comentado como no seu)
+          // backgroundColor: isDarkContext
+          //   ? "rgba(20, 20, 30, 0.85)"
+          //   : "rgba(255, 255, 255, 0.9)",
+          // backdropFilter: "blur(5px)",
+          borderRadius: "8px 8px 0 0",
+          margin: "0 10px",
+          marginBottom: "10px",
+          // border: isDarkContext ? `1px solid ${mainColor}44` : "none",
         }}
       >
-        <div className="casas">
-          {/* Cria um array com o tamanho do 'level' e faz o map */}
-          {Array.from({ length: propriedade.level || 0 }).map((_, index) => (
-            <svg // Obrigatório no React ao usar map
+        {/* Indicadores Visuais de Nível */}
+        <div
+          className="casas"
+          style={{ display: "flex", gap: "4px", marginBottom: "10px" }}
+        >
+          {Array.from({ length: propriedade.color === "Estacao" || propriedade.color === "Companhia" ? propriedade.level + 1 || 0 : propriedade.level || 0 }).map((_, index) => (
+            <svg
               key={index}
               xmlns="http://www.w3.org/2000/svg"
-              width="50"
-              height="50"
+              width="32"
+              height="32"
               viewBox="0 0 24 24"
-              fill={mainColor} // Adicionei o # que faltava no Hex
+              fill={mainColor}
+              // Adicionei um filtro de drop-shadow nas casinhas também se for contexto escuro
+              style={
+                isDarkContext
+                  ? { filter: `drop-shadow(0 0 2px ${mainColor})` }
+                  : {}
+              }
             >
               <path
                 d="M4 20h16V10l-8-7-8 7z"
                 stroke={mainColor}
-                strokeWidth="1" // React usa camelCase
-                strokeLinecap="round" // React usa camelCase
-                strokeLinejoin="round" // React usa camelCase
-                className={propriedade.level === 5 && "rgb"}
+                strokeWidth="1"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
               <text
-                x="12" // Metade da largura do viewBox (24 / 2)
-                y="14" // Metade da altura (12) + um ajuste visual leve para baixo
-                textAnchor="middle" // Centraliza horizontalmente
-                dominantBaseline="middle" // Centraliza verticalmente
-                fill="#fff" // Cor do texto
-                fontSize="10" // Tamanho da fonte
-                fontWeight="bold" // Negrito
-                style={{ userSelect: "none", fontFamily: "Nunito, sans-serif" }} // Impede que o usuário selecione o texto
+                x="12"
+                y="15"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="#fff"
+                fontSize="10"
+                fontWeight="bold"
+                style={{ userSelect: "none" }}
               >
                 {index + 1}
               </text>
             </svg>
           ))}
         </div>
-        <div style={{display: "flex", width: "100%", justifyContent: "space-around"}}>
-          <div className="nu-property-owner">
-            <span style={{ fontSize: "0.9rem", fontWeight: 400 }}>Aluguel</span>
-            <span style={{ fontSize: "1.8rem", color: mainColor }}>
-              R$ {propriedade.rent[propriedade.level]}
-            </span>
-          </div>
-          <div className="nu-property-owner">
-            <span style={{ fontSize: "0.9rem", fontWeight: 400 }}>Dono</span>
+
+        <div
+          style={{
+            display: "flex",
+            width: "100%",
+            justifyContent: "space-around",
+            marginBottom: "10px",
+          }}
+        >
+          {/* BLOCO ALUGUEL */}
+          <div
+            className="nu-property-owner"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
             <span
               style={{
-                fontSize: "1.8rem",
+                fontSize: "0.8rem",
+                color: isDarkContext ? "#ccc" : "#666",
+              }}
+            >
+              Aluguel Atual
+            </span>
+            <span
+              style={{
+                fontSize: "1.4rem",
                 color: mainColor,
+                fontWeight: "bold",
+                ...glowStyle, // GLOW AQUI
+              }}
+            >
+              R${" "}
+              {propriedade.rent && propriedade.rent[propriedade.level || 0]
+                ? propriedade.rent[propriedade.level || 0]
+                : 0}
+            </span>
+          </div>
+
+          {/* BLOCO PROPRIETÁRIO */}
+          <div
+            className="nu-property-owner"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "0.8rem",
+                color: isDarkContext ? "#ccc" : "#666",
+              }}
+            >
+              Proprietário
+            </span>
+            <span
+              style={{
+                fontSize: "1.2rem",
+                color: isDarkContext ? "#fff" : "#333", // Texto branco no escuro
+                fontWeight: "bold",
                 textTransform: "uppercase",
+                textShadow: isDarkContext
+                  ? "0 0 5px rgba(255,255,255,0.5)"
+                  : "none",
               }}
             >
               {propriedade.ownerUsername || "Banco"}
@@ -119,12 +235,34 @@ export const NuPropertyCard = ({ propriedade }) => {
           </div>
         </div>
 
-        <div className="nu-property-owner">
-          <span style={{ fontSize: "0.9rem", fontWeight: 400 }}>
-            Arrecadação
+        <div
+          style={{
+            width: "90%",
+            paddingTop: "5px",
+            // borderTop: isDarkContext ? "1px solid #444" : "1px solid #eee",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          {/* BLOCO TOTAL */}
+          <span
+            style={{
+              fontSize: "0.8rem",
+              color: isDarkContext ? "#ccc" : "#666",
+            }}
+          >
+            Total Arrecadado
           </span>
-          <span style={{ fontSize: "1.8rem", color: mainColor }}>
-            R$ {propriedade.acummulatedCapital}
+          <span
+            style={{
+              fontSize: "1.1rem",
+              color: "#4CAF50",
+              fontWeight: "bold",
+              textShadow: isDarkContext ? "0 0 8px #4CAF50" : "none",
+            }}
+          >
+            R$ {propriedade.acummulatedCapital || 0}
           </span>
         </div>
       </div>

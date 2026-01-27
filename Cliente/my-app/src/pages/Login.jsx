@@ -189,7 +189,7 @@ export const Login = () => {
             placeholder="Claudete Morel..."
             className="username-input"
             value={username}
-            onChange={(e) => setNome(e.target.value)}
+            onChange={(e) => setNome(e.target.value.trim())}
           />
         </div>
 

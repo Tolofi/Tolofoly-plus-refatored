@@ -57,13 +57,15 @@ export const MagicBox = ({ open, close, dices, onLeave }) => {
           Pagar ao banco
         </button>
         <button
-          onClick={dices}
+          onClick={() => {
+            socket.emit("sync_game", localStorage.getItem("monopoly_username"));
+          }}
           className="magic-btn"
           style={{
             gridColumn: "span 1",
           }}
         >
-          Revelar dados
+          Sincronizar
         </button>
         <button
           onClick={onLeave} // <--- AQUI MUDOU

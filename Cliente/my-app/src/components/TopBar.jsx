@@ -5,6 +5,8 @@ export const TopBar = ({ dado, dinheiro, propriedade, notification }) => {
   const dinheiroFormatado = Number(dinheiro).toLocaleString("pt-BR", {
     minimumFractionDigits: 0,
   });
+  !propriedade && socket.emit("reconnectPlayer", localStorage.getItem("monopoly_username"));
+  
 
   return (
     <motion.div
