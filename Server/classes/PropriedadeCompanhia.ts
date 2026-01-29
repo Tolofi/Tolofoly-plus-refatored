@@ -5,6 +5,10 @@ export class PropriedadeCompanhia extends Propriedade {
         super(id, nome, "#787878", color, null, null, 1500, [200, 400, 800, 1600]);
     }
 
+    override generateRandomEvent(): void {
+        // Companhias não sofrem eventos
+    }
+
     override getRent(numberOfCompanies?: number): number | null {
         if (numberOfCompanies === undefined) {
             return null;

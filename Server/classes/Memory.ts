@@ -40,14 +40,48 @@ export class Memory {
 
   // --- IMPLEMENTAÇÃO 1: Define o clima aleatório para todas as propriedades ---
   static randomizeWeather() {
-    this.propriedades.forEach((prop) => {
-      // Verifica se o método existe antes de chamar (segurança)
-      // assumindo que suas classes de Propriedade possuem esse método
-      if (
-        "randomWeather" in prop &&
-        typeof (prop as any).randomWeather === "function"
-      ) {
-        (prop as any).randomWeather();
+    this.propriedades.forEach((prop: Propriedade) => {
+      // 1. Decrementa duração de eventos anteriores
+      prop.decreaseEventDuration();
+
+      // 2. Tenta gerar novos eventos (Obra, Carnaval, etc)
+      // Se gerar, ele define multiplier e alertMessage aqui
+      prop.generateRandomEvent();
+
+      // 3. Aplica o Clima
+      if ("randomWeather" in prop && typeof prop.randomWeather === "function") {
+        prop.randomWeather(); // Sorteia o clima (stormy, rainy, clear)
+
+        // --- CORREÇÃO AQUI ---
+        // Só entramos na lógica de resetar/alterar baseada em clima SE FOR ESTAÇÃO.
+        if (prop.getColor() === "Estacao") {
+          if (prop.getWeather() === "stormy") {
+            // Tempestade: Penaliza a Estação
+            prop.setRentMultiplier(0.8);
+            // prop.updateRent();
+            prop.setAlertMessage("Voos cancelados! -20%(aluguel)");
+          }
+          // Se for (Clear OU Rainy), reseta para o normal
+          else if (
+            prop.getWeather() === "clear" ||
+            prop.getWeather() === "rainy"
+          ) {
+            // CUIDADO: Só reseta se NÃO tiver um evento ativo (gerado no passo 2)
+            // Se tiver evento (duration > 0), o evento manda no multiplier, não o clima.
+            if (prop.eventDuration === 0) {
+              prop.setRentMultiplier(1);
+              // prop.updateRent();
+              prop.setAlertMessage("");
+            }
+          }
+        }
+        // Se NÃO for estação, o clima não faz nada, preservando o evento gerado no passo 2.
+      }
+
+      if (prop.eventDuration > 0) {
+        console.log(
+          `Propriedade ${prop.getName()} (${prop.getId()}) está com evento ativo: ${prop.alertMessage}`,
+        );
       }
     });
   }

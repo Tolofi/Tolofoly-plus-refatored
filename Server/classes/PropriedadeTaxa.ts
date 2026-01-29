@@ -6,4 +6,8 @@ export class PropriedadeTaxa extends Propriedade {
         super(id, nome, "#808080",color, null, null, null);
         this.taxAmount = taxaAmount;
     }
+
+    override generateRandomEvent(): void {
+        // Taxas não sofrem eventos
+    }
 }

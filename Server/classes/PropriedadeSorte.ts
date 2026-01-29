@@ -8,4 +8,7 @@ export class PropriedadeSorte extends Propriedade {
     gerarMensagem(jogador: string): string {
         return "";
     }
+    override generateRandomEvent(): void {
+        // Sortes não sofrem eventos
+    }
 }
