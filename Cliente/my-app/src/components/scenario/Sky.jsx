@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 
+// === Configurações de Estilo ===
 const styles = {
   skyContainer: {
     width: "100%",
@@ -36,7 +37,6 @@ const styles = {
       "0 0 10px rgba(255, 255, 255, 0.8), 0 0 40px rgba(200, 220, 255, 0.4)",
     zIndex: 2,
   },
-  // Estilo base da nuvem (cores serão sobrescritas se chover)
   cloud: {
     position: "absolute",
     width: "64px",
@@ -52,17 +52,59 @@ const styles = {
     borderRadius: "50%",
     zIndex: 1,
   },
+  lightning: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#FFFFFF",
+    zIndex: 1,
+    pointerEvents: "none",
+  },
 };
 
-// === Componente de Estrelas ===
-const Stars = ({ count = 20 }) => {
-  const stars = useMemo(() => {
-    return Array.from({ length: count }).map(() => ({
-      top: Math.random() * 60 + "%",
-      left: Math.random() * 100 + "%",
-      opacity: Math.random(),
-    }));
-  }, [count]);
+// === Componente: Relâmpago ===
+const Lightning = () => {
+  const [flash, setFlash] = useState(false);
+
+  useEffect(() => {
+    const trigger = () => {
+      if (Math.random() > 0.6) {
+        setFlash(true);
+        setTimeout(() => setFlash(false), 50 + Math.random() * 150);
+      }
+    };
+    const interval = setInterval(trigger, 3500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <AnimatePresence>
+      {flash && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 0.7, 0.2, 0.8, 0] }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          style={styles.lightning}
+        />
+      )}
+    </AnimatePresence>
+  );
+};
+
+// === Componente: Estrelas ===
+const Stars = ({ count = 30 }) => {
+  const stars = useMemo(
+    () =>
+      Array.from({ length: count }).map(() => ({
+        top: Math.random() * 60 + "%",
+        left: Math.random() * 100 + "%",
+        opacity: Math.random(),
+      })),
+    [count],
+  );
 
   return (
     <>
@@ -83,30 +125,31 @@ const Stars = ({ count = 20 }) => {
   );
 };
 
-// === NOVO: Componente Gota de Chuva Única ===
-const Raindrop = () => {
-  // Posição horizontal aleatória
-  const randomLeft = useMemo(() => Math.random() * 100, []);
-  // Delay negativo aleatório para começar já chovendo em pontos diferentes
+// === Componente: Gota de Chuva (Espessura Original) ===
+const Raindrop = ({ isStormy }) => {
+  const randomLeft = useMemo(() => Math.random() * 120 - 10, []);
   const randomDelay = useMemo(() => Math.random() * -2, []);
-  // Velocidade variada (gotas mais rápidas parecem mais próximas)
-  const duration = useMemo(() => 0.6 + Math.random() * 0.4, []);
+  const duration = useMemo(
+    () => (isStormy ? 0.5 : 0.8) + Math.random() * 0.3,
+    [isStormy],
+  );
 
   return (
     <motion.div
       style={{
         position: "absolute",
         left: `${randomLeft}%`,
-        top: -20, // Começa fora da tela
-        width: "2px", // Gota fina
-        height: "15px", // Gota comprida (efeito de velocidade)
-        backgroundColor: "#90A4AE", // Azul acinzentado
-        opacity: 0.8,
-        borderRadius: "2px",
-        zIndex: 4, // Fica na frente das nuvens
+        top: -20,
+        width: "2px", // Espessura original que você pediu
+        height: isStormy ? "25px" : "15px",
+        backgroundColor: isStormy ? "#90A4AE" : "#B0BEC5",
+        opacity: 0.6,
+        zIndex: 4,
       }}
-      // Anima de cima para baixo (passando 100% da altura)
-      animate={{ y: ["0vh", "100vh"] }}
+      animate={{
+        y: ["0vh", "110vh"],
+        x: isStormy ? -40 : 0, // Vento na tempestade
+      }}
       transition={{
         duration: duration,
         repeat: Infinity,
@@ -117,8 +160,9 @@ const Raindrop = () => {
   );
 };
 
-// === NOVO: Componente Container de Chuva ===
-const Rain = ({ drops = 60 }) => {
+// === Componente: Chuva ===
+const Rain = ({ isStormy }) => {
+  const dropsCount = isStormy ? 100 : 60;
   return (
     <div
       style={{
@@ -129,30 +173,29 @@ const Rain = ({ drops = 60 }) => {
         pointerEvents: "none",
       }}
     >
-      {Array.from({ length: drops }).map((_, i) => (
-        <Raindrop key={i} />
+      {Array.from({ length: dropsCount }).map((_, i) => (
+        <Raindrop key={i} isStormy={isStormy} />
       ))}
     </div>
   );
 };
 
-// === Componente Nuvens (Atualizado para suportar cor de chuva) ===
-export const Clouds = ({ random, weather }) => {
+// === Componente: Nuvens ===
+const Clouds = ({ weather }) => {
   const isRainy = weather === "rainy";
+  const isStormy = weather === "stormy";
 
-  // Cores dinâmicas baseadas no clima
-  const cloudColor = isRainy ? "#546E7A" : "#FFFFFF"; // Cinza chumbo vs Branco
-  const shadowColor = isRainy ? "#455A64" : "#FFFFFF"; // Sombra mais escura vs Branca
+  const cloudColor = isStormy ? "#37474F" : isRainy ? "#546E7A" : "#FFFFFF";
+  const shadowColor = isStormy ? "#263238" : isRainy ? "#455A64" : "#FFFFFF";
 
   const [config] = useState(() => {
-    const duration = Math.floor(Math.random() * (35 - 15 + 1)) + 15;
+    const baseDuration = Math.floor(Math.random() * 15) + 20;
     return {
-      top: Math.floor(Math.random() * (50 - 2 + 1)) + 2,
-      duration: duration,
-      scale: Math.random() * 1.0 + 0.8,
-      // Se estiver chovendo, as nuvens são mais opacas (pesadas)
-      opacity: isRainy ? Math.random() * 0.2 + 0.8 : Math.random() * 0.4 + 0.4,
-      delay: -Math.random() * duration,
+      top: Math.floor(Math.random() * 40) + 5,
+      duration: isStormy ? baseDuration * 0.6 : baseDuration,
+      scale: Math.random() * 1.2 + 0.8,
+      opacity: isRainy || isStormy ? 0.9 : 0.6,
+      delay: -Math.random() * 20,
     };
   });
 
@@ -160,20 +203,15 @@ export const Clouds = ({ random, weather }) => {
     <motion.div
       style={{
         ...styles.cloud,
-        // Aplicando cores dinâmicas
         backgroundColor: cloudColor,
         boxShadow: `8px 0 0 ${shadowColor}, 16px 2px 0 ${shadowColor}, 6px -4px 0 ${shadowColor}`,
-        // Configurações de posição
         top: `${config.top}%`,
-        left: 0,
-        position: "absolute",
         scale: config.scale,
         opacity: config.opacity,
       }}
-      animate={{ x: [-150, 450] }}
+      animate={{ x: [-200, 600] }}
       transition={{
         repeat: Infinity,
-        repeatType: "loop",
         duration: config.duration,
         ease: "linear",
         delay: config.delay,
@@ -182,78 +220,67 @@ export const Clouds = ({ random, weather }) => {
   );
 };
 
-// === Componente Principal do Céu (Atualizado) ===
-// Agora aceita a prop 'weather' ("clear" ou "rainy")
-export const Sky = ({ hour, weather = "clear", cloudsNumber = 3 }) => {
+// === COMPONENTE PRINCIPAL ===
+export const Sky = ({ hour = "dia", weather = "clear", cloudsNumber = 4 }) => {
   const isRainy = weather === "rainy";
+  const isStormy = weather === "stormy";
+  const isBadWeather = isRainy || isStormy;
 
-  // Lógica do Background
-  let backgroundStyle;
-  if (isRainy) {
-    // Gradiente cinza pesado para chuva (independente se é dia ou noite)
-    backgroundStyle = "linear-gradient(to bottom, #37474F 0%, #607D8B 100%)";
-  } else {
-    backgroundStyle =
-      hour === "dia"
-        ? "linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 100%)"
-        : "linear-gradient(to bottom, #0F2027 0%, #203A43 100%)";
-  }
-
-  // Condição para mostrar astros: Só mostra se NÃO estiver chovendo.
-  const showCelestialBodies = !isRainy;
+  const backgroundStyle = useMemo(() => {
+    if (isStormy) return "linear-gradient(to bottom, #10171d 0%, #2c3e50 100%)";
+    if (isRainy) return "linear-gradient(to bottom, #37474F 0%, #607D8B 100%)";
+    return hour === "dia"
+      ? "linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 100%)"
+      : "linear-gradient(to bottom, #0F2027 0%, #203A43 100%)";
+  }, [hour, weather]);
 
   return (
     <div style={{ ...styles.skyContainer, background: backgroundStyle }}>
-      {/* Estrelas (Só à noite E se não estiver chovendo) */}
+      {isStormy && <Lightning />}
+
       <AnimatePresence>
-        {hour === "noite" && showCelestialBodies && (
+        {hour === "noite" && !isBadWeather && (
           <motion.div
             key="stars"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1 }}
-            style={{ position: "absolute", width: "100%", height: "100%" }}
           >
-            <Stars count={30} />
+            <Stars count={40} />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Chuva (Só aparece se weather for "rainy") */}
-      {isRainy && <Rain drops={80} />}
+      {isBadWeather && <Rain isStormy={isStormy} />}
 
-      {/* Nuvens (Sempre presentes, mas mudam de cor baseadas no weather) */}
       {Array.from({ length: cloudsNumber }).map((_, i) => (
-        <Clouds key={i} random weather={weather} />
+        <Clouds key={i} weather={weather} />
       ))}
 
-      {/* Sol e Lua (Só aparecem se NÃO estiver chovendo) */}
       <AnimatePresence mode="wait">
-        {hour === "dia" && showCelestialBodies ? (
+        {!isBadWeather && (
           <motion.div
-            key="sun"
-            style={styles.sun}
-            initial={{ y: 100, opacity: 0 }}
+            key={hour}
+            style={hour === "dia" ? styles.sun : styles.moon}
+            initial={{ y: 150, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
+            exit={{ y: 150, opacity: 0 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
           />
-        ) : (
-          // Se for noite E não estiver chovendo
-          hour === "noite" &&
-          showCelestialBodies && (
-            <motion.div
-              key="moon"
-              style={styles.moon}
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-            />
-          )
         )}
       </AnimatePresence>
     </div>
   );
 };
+
+// Lógica de sorteio para você usar no seu gerenciador de estado:
+/*
+randomWeather() {
+  const rand = Math.random();
+  if (rand < 0.2) return "stormy"; // 20%
+  if (rand < 0.4) return "rainy";  // 20%
+  return "clear";                 // 60%
+}
+*/
+
+export default Sky;

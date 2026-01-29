@@ -31,12 +31,24 @@ export const NuPropertyCard = ({ propriedade }) => {
   const weather = propriedade.weather; // "clear" ou "rainy"
 
   // LÓGICA PRINCIPAL: O ambiente é "escuro" se for noite OU se estiver chovendo
-  const isDarkContext = hour === "noite" || weather === "rainy";
+  const isDarkContext =
+    hour === "noite" || weather === "rainy" || weather === "stormy";
+  const alertColor = () => {
+    if (propriedade.rentMultiplier < 1) return "#10B981"; // Verde para penalidades
+    if (propriedade.rentMultiplier > 1) return "#EF4444"; // Verde para penalidades
+    if (propriedade.rentMultiplier === 1) return mainColor; // Verde para penalidades
+  };
 
   // Estilo do Glow: Sombra colorida suave + brilho aumentado
   const glowStyle = isDarkContext
     ? {
         textShadow: `0 0 4px ${mainColor}, 0 0 10px ${mainColor}`,
+        filter: "brightness(1.1)", // Aumenta um pouco o brilho da cor base
+      }
+    : {};
+  const glowStyleAlertMessage = isDarkContext
+    ? {
+        textShadow: `0 0 4px ${alertColor()}, 0 0 10px ${alertColor()}`,
         filter: "brightness(1.1)", // Aumenta um pouco o brilho da cor base
       }
     : {};
@@ -54,7 +66,7 @@ export const NuPropertyCard = ({ propriedade }) => {
         backgroundColor: "transparent",
         fontFamily: "Nunito, sans-serif",
         position: "relative",
-        margin: "0 auto"
+        margin: "0 auto",
       }}
     >
       {/* === BACKGROUND: CÉU === */}
@@ -124,7 +136,13 @@ export const NuPropertyCard = ({ propriedade }) => {
           className="casas"
           style={{ display: "flex", gap: "4px", marginBottom: "10px" }}
         >
-          {Array.from({ length: propriedade.color === "Estacao" || propriedade.color === "Companhia" ? propriedade.level + 1 || 0 : propriedade.level || 0 }).map((_, index) => (
+          {Array.from({
+            length:
+              propriedade.color === "Estacao" ||
+              propriedade.color === "Companhia"
+                ? propriedade.level + 1 || 0
+                : propriedade.level || 0,
+          }).map((_, index) => (
             <svg
               key={index}
               xmlns="http://www.w3.org/2000/svg"
@@ -161,7 +179,18 @@ export const NuPropertyCard = ({ propriedade }) => {
             </svg>
           ))}
         </div>
-
+        {propriedade.alertMessage && (
+          <span
+            style={{
+              fontSize: "0.8rem",
+              color: alertColor(),
+              textAlign: "center",
+              ...glowStyleAlertMessage,
+            }}
+          >
+            {propriedade.alertMessage}
+          </span>
+        )}
         <div
           style={{
             display: "flex",
@@ -187,19 +216,55 @@ export const NuPropertyCard = ({ propriedade }) => {
             >
               Aluguel Atual
             </span>
-            <span
-              style={{
-                fontSize: "1.4rem",
-                color: mainColor,
-                fontWeight: "bold",
-                ...glowStyle, // GLOW AQUI
-              }}
-            >
-              R${" "}
-              {propriedade.rent && propriedade.rent[propriedade.level || 0]
-                ? propriedade.rent[propriedade.level || 0]
-                : 0}
-            </span>
+            {(() => {
+              const level = propriedade.level || 0;
+
+              // 1. BASE: Como removemos o updateRent do backend,
+              // 'rent' agora é sempre o valor ORIGINAL (Puro).
+              const originalRent =
+                propriedade.rent && propriedade.rent[level]
+                  ? propriedade.rent[level]
+                  : 0;
+
+              // 2. MULTIPLICADOR
+              const multiplier = propriedade.rentMultiplier || 1;
+              const isModified = multiplier !== 1;
+
+              // 3. FINAL: Calculamos o valor com desconto/aumento aqui no front
+              const finalRent = Math.round(originalRent * multiplier);
+
+              return (
+                <span
+                  style={{
+                    fontSize: "1.4rem",
+                    color: alertColor(),
+                    fontWeight: "bold",
+                    ...glowStyleAlertMessage,
+                  }}
+                >
+                  R$
+                  {/* Se tiver evento, mostra o Original riscado antes */}
+                  {isModified && (
+                    <>
+                      <span
+                        style={{
+                          textDecoration: "line-through",
+                          opacity: 0.7,
+                          marginRight: "5px",
+                          fontSize: "0.9rem", // Um pouco menor
+                          color: isDarkContext ? "#aaa" : "#555",
+                        }}
+                      >
+                        {originalRent}
+                      </span>
+                      {"-> "}
+                    </>
+                  )}
+                  {/* Valor Final (Calculado) */}
+                  {finalRent}
+                </span>
+              );
+            })()}
           </div>
 
           {/* BLOCO PROPRIETÁRIO */}

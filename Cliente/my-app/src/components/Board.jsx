@@ -1,542 +1,99 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect } from "react";
+import { motion, LayoutGroup, AnimatePresence } from "framer-motion";
 import { BoardMachine } from "./PagamentoBoard";
 import { socket } from "../../socket";
-import { Sky } from "../components/scenario/Sky";
 
 // --- HELPERS ---
-const getNormalizedIndex = (index) => {
-  return (index + 40) % 40;
+const getCoords = (id) => {
+  const numericId = Number(id);
+  const shiftedId = (numericId + 5) % 40;
+
+  if (shiftedId >= 0 && shiftedId <= 10) return { x: 11 - shiftedId, y: 11 };
+  if (shiftedId >= 11 && shiftedId <= 20)
+    return { x: 1, y: 11 - (shiftedId - 10) };
+  if (shiftedId >= 21 && shiftedId <= 30)
+    return { x: 1 + (shiftedId - 20), y: 1 };
+  if (shiftedId >= 31 && shiftedId <= 39)
+    return { x: 11, y: 1 + (shiftedId - 30) };
+  return { x: 11, y: 11 };
 };
 
-// --- CONFIGURAÇÃO DE CORES ---
-const PROPERTY_COLORS = {
-  Marrom: ["#6B2E0E", "#F3E6DC"],
-  "Azul Claro": ["#1E5AA8", "#E6F1FF"],
-  Rosa: ["#9E2E58", "#FBE4EE"],
-  Laranja: ["#B35A14", "#FFF1E3"],
-  Vermelho: ["#A32020", "#FDEAEA"],
-  Amarelo: ["#8A6A00", "#FFF7D6"],
-  Verde: ["#1B6E3E", "#E6F6EE"],
-  Azul: ["#1C4E9A", "#E5EFFF"],
-  Estacao: ["#2D3436", "#F0F0F0"],
-  Companhia: ["#636e72", "#dfe6e9"],
-  Sorte: ["#A855F7", "#F3E8FF"],
-  Prisao: ["#374151", "#F9FAFB"],
-  Padrao: ["#4B5563", "#F3F4F6"],
+const getTileSideClass = (x, y) => {
+  if ((x === 1 || x === 11) && (y === 1 || y === 11)) return "tile-corner";
+  if (y === 11) return "tile-bottom";
+  if (x === 1) return "tile-left";
+  if (y === 1) return "tile-top";
+  if (x === 11) return "tile-right";
+  return "";
 };
 
-// --- NOVO CARD INTEGRADO (MANTIDO INTACTO) ---
-const PropertyCard = ({ prop, positionStatus, playersHere }) => {
-  const nomeCor = prop.color || "Padrao";
-  const [textActiveColor] =
-    PROPERTY_COLORS[nomeCor] || PROPERTY_COLORS["Padrao"];
-  const mainColor = prop.themeColor || textActiveColor;
+const JUMP_DURATION = 280;
 
-  const hour = prop.hour || "dia";
-  const weather = prop.weather || "clear";
-  const isDarkContext = hour === "noite" || weather === "rainy";
+const GamePawn = ({ player, targetPos, playersOnSameSquare }) => {
+  const [visualPos, setVisualPos] = useState(Number(player.posicao));
+  const finalPos = Number(targetPos);
 
-  const solidBgTypes = ["Comeco", "Sorte", "Visitante", "Prisao", "Taxa"];
-  const isSolidBg = solidBgTypes.includes(prop.color);
-  const isEstacionamento = prop.color === "Estacionamento";
-  const isSimpleLayout = isSolidBg || isEstacionamento;
+  useEffect(() => {
+    if (visualPos === finalPos) return;
+    const timer = setTimeout(() => {
+      setVisualPos((prev) => (prev + 1) % 40);
+    }, JUMP_DURATION);
+    return () => clearTimeout(timer);
+  }, [visualPos, finalPos]);
 
-  const glowStyle = isDarkContext
-    ? {
-        textShadow: `0 0 4px ${mainColor}, 0 0 10px ${mainColor}`,
-        filter: "brightness(1.2)",
-      }
-    : {};
+  const { x, y } = getCoords(visualPos);
+  const myIndex = playersOnSameSquare.findIndex((p) => p.id === player.id);
+  const total = playersOnSameSquare.length;
 
-  const variants = {
-    prev: {
-      x: "-115%",
-      scale: 0.85,
-      opacity: 0.7,
-      rotateY: 25,
-      zIndex: 1,
-      filter: "brightness(0.7)",
-    },
-    current: {
-      x: "0%",
-      scale: 1,
-      opacity: 1,
-      rotateY: 0,
-      zIndex: 10,
-      filter: "none",
-    },
-    next: {
-      x: "115%",
-      scale: 0.85,
-      opacity: 0.7,
-      rotateY: -25,
-      zIndex: 1,
-      filter: "brightness(0.7)",
-    },
-    hiddenRight: { x: "200%", opacity: 0, scale: 0.8 },
-  };
-
-  const nivel = prop.level || 0;
-  const aluguelAtual = prop.rent && prop.rent[nivel] ? prop.rent[nivel] : 0;
-  const isSpecial = !prop.rent;
+  const offsetX = total > 1 ? (myIndex - (total - 1) / 2) * 14 : 0;
+  const offsetY = total > 1 ? (myIndex % 2 === 0 ? -10 : 10) : 0;
 
   return (
     <motion.div
-      className="carousel-card"
-      initial="hiddenRight"
-      animate={positionStatus}
-      variants={variants}
-      transition={{ type: "spring", stiffness: 260, damping: 20 }}
+      layout
+      className="pawn"
       style={{
-        width: "360px",
-        height: "550px",
-        background: isSolidBg ? mainColor : "transparent",
-        border: `2px solid ${isDarkContext ? "#ffffff33" : "#00000011"}`,
-        transformStyle: "preserve-3d",
-        borderRadius: "18px",
+        backgroundColor: player.color,
+        zIndex: 100 + myIndex,
+        gridColumn: x,
+        gridRow: y,
+        border: "3px solid white",
+        boxShadow: "0 4px 8px rgba(0,0,0,0.6)",
       }}
-    >
-      {!isSolidBg && (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            zIndex: 0,
-            borderRadius: "18px",
-            overflow: "hidden",
-          }}
-        >
-          <Sky hour={hour} cloudsNumber={3} weather={weather} />
-        </div>
-      )}
-
-      <div
-        className="card-content-wrapper"
-        style={{
-          position: "relative",
-          zIndex: 1,
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          padding: "15px",
-        }}
-      >
-        {isSimpleLayout ? (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                color: isSolidBg ? "#FFF" : mainColor,
-                fontSize: "2.0rem",
-                fontWeight: "900",
-                lineHeight: 1.1,
-                textTransform: "uppercase",
-                ...(isSolidBg
-                  ? { textShadow: "0 2px 10px rgba(0,0,0,0.3)" }
-                  : glowStyle),
-              }}
-            >
-              {prop.name}
-            </h2>
-          </div>
-        ) : (
-          <>
-            <div style={{ textAlign: "center", marginBottom: "15px" }}>
-              <div
-                style={{
-                  fontSize: "0.9rem",
-                  fontWeight: "bold",
-                  color: "#fff",
-                  opacity: 0.8,
-                  backgroundColor: "rgba(0,0,0,0.3)",
-                  borderRadius: "10px",
-                  padding: "4px 10px",
-                  display: "inline-block",
-                  marginBottom: "8px",
-                }}
-              >
-                {prop.id}
-              </div>
-              <h2
-                style={{
-                  margin: 0,
-                  color: mainColor,
-                  fontSize: "1.8rem",
-                  fontWeight: "900",
-                  lineHeight: 1.1,
-                  textTransform: "uppercase",
-                  ...glowStyle,
-                }}
-              >
-                {prop.name}
-              </h2>
-            </div>
-
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                borderRadius: "12px",
-                padding: "10px",
-              }}
-            >
-              {!isSpecial ? (
-                <>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "4px",
-                      marginBottom: "20px",
-                      height: "32px",
-                      alignItems: "flex-end",
-                    }}
-                  >
-                    {Array.from({
-                      length: nivel
-                    }).map((_, i) => (
-                      <svg
-                        key={i}
-                        width="32"
-                        height="32"
-                        viewBox="0 0 24 24"
-                        fill={mainColor}
-                        style={
-                          isDarkContext
-                            ? { filter: `drop-shadow(0 0 2px ${mainColor})` }
-                            : {}
-                        }
-                      >
-                        <path
-                          d="M4 20h16V10l-8-7-8 7z"
-                          stroke={mainColor}
-                          strokeWidth="1"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    ))}
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      marginBottom: "20px",
-                      width: "100%",
-                    }}
-                  >
-                    {prop.ownerUsername ? (
-                      <>
-                        <span
-                          style={{
-                            fontSize: "0.8rem",
-                            color: "#666",
-                            textTransform: "uppercase",
-                            letterSpacing: "1px",
-                            fontWeight: "600",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                            marginBottom: "4px",
-                          }}
-                        >
-                          ALUGUEL
-                        </span>
-                        <span
-                          style={{
-                            fontSize: "2.5rem",
-                            color: mainColor,
-                            fontWeight: "bold",
-                            ...glowStyle,
-                            padding: "0 10px",
-                            borderRadius: "8px",
-                          }}
-                        >
-                          R$ {aluguelAtual}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span
-                          style={{
-                            fontSize: "0.8rem",
-                            color: "#666",
-                            textTransform: "uppercase",
-                            letterSpacing: "1px",
-                            fontWeight: "600",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                            marginBottom: "4px",
-                          }}
-                        >
-                          PREÇO
-                        </span>
-                        <span
-                          style={{
-                            fontSize: "2.5rem",
-                            color: "#4CAF50",
-                            fontWeight: "bold",
-                            padding: "0 10px",
-                            borderRadius: "8px",
-                            textShadow: isDarkContext
-                              ? "0 0 8px #4CAF50"
-                              : "none",
-                          }}
-                        >
-                          R$ {prop.price}
-                        </span>
-                      </>
-                    )}
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      width: "100%",
-                      paddingTop: "15px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "0.7rem",
-                          color: "#888",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        PROPRIETÁRIO
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "1.1rem",
-                          fontWeight: "bold",
-                          color: isDarkContext ? "#fff" : "#333",
-                          maxWidth: "110px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          textShadow: isDarkContext
-                            ? "0 0 5px rgba(255,255,255,0.5)"
-                            : "none",
-                        }}
-                      >
-                        {prop.ownerUsername || "Banco"}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "0.7rem",
-                          color: "#888",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        ARRECADAÇÃO
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "1.1rem",
-                          fontWeight: "bold",
-                          color: "#4CAF50",
-                          textShadow: isDarkContext
-                            ? "0 0 8px #4CAF50"
-                            : "none",
-                        }}
-                      >
-                        R$ {prop.acummulatedCapital || 0}
-                      </span>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: "100%",
-                    textAlign: "center",
-                    color: "#666",
-                  }}
-                >
-                  <p style={{ fontStyle: "italic", fontSize: "1.4rem" }}>
-                    Evento Especial
-                  </p>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        <div
-          className="pawns-container"
-          style={{
-            marginTop: "15px",
-            height: "40px",
-            display: "flex",
-            justifyContent: "center",
-            gap: "10px",
-          }}
-        >
-          <AnimatePresence>
-            {playersHere.map((p) => (
-              <motion.div
-                key={p.username}
-                className="pawn-dot"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "50%",
-                  backgroundColor: p.color,
-                  border: "3px solid white",
-                  boxShadow: "0 4px 8px rgba(0,0,0,0.6)",
-                }}
-                title={p.username}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
-      </div>
-    </motion.div>
+      animate={{ x: offsetX, y: offsetY, scale: [1, 1.25, 1] }}
+      transition={{
+        layout: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 },
+      }}
+    />
   );
 };
 
-// --- BOARD PRINCIPAL ---
 export const Board = ({ propriedadesServidor, jogadores }) => {
+  const [isTvMode, setIsTvMode] = useState(true);
   const [machineActive, setMachineActive] = useState(false);
-  const myUsername = localStorage.getItem("monopoly_username");
-
   const [currentTurnUser, setCurrentTurnUser] = useState(
     jogadores[0]?.username || "",
   );
 
+  // Estado para controle do tamanho da fonte (1 = padrão)
+  const [fontScale, setFontScale] = useState(1);
+
   useEffect(() => {
     const handleTurnUpdate = (data) => {
-      if (data && data.playerDaVez) {
-        setCurrentTurnUser(data.playerDaVez);
-      }
+      if (data && data.playerDaVez) setCurrentTurnUser(data.playerDaVez);
     };
     socket.on("turn_update", handleTurnUpdate);
-    return () => {
-      socket.off("turn_update", handleTurnUpdate);
-    };
+    return () => socket.off("turn_update", handleTurnUpdate);
   }, []);
 
-  const playerToFollow =
-    jogadores.find((p) => p.username === currentTurnUser) || jogadores[0];
+  const propsArray = Array.isArray(propriedadesServidor)
+    ? propriedadesServidor
+    : Object.values(propriedadesServidor || {});
 
-  const realTargetPos = playerToFollow ? Number(playerToFollow.posicao) : 0;
-
-  const [visualPos, setVisualPos] = useState(realTargetPos);
-  const previousPlayerRef = useRef(playerToFollow?.username);
-
-  useEffect(() => {
-    const currentPlayerName = playerToFollow?.username;
-
-    if (currentPlayerName !== previousPlayerRef.current) {
-      setVisualPos(realTargetPos);
-      previousPlayerRef.current = currentPlayerName;
-      return;
-    }
-
-    if (visualPos === realTargetPos) return;
-
-    const SPEED_MS = 250;
-    const timer = setTimeout(() => {
-      setVisualPos((prev) => (prev + 1) % 40);
-    }, SPEED_MS);
-
-    return () => clearTimeout(timer);
-  }, [visualPos, realTargetPos, playerToFollow]);
-
-  const propsArray = useMemo(() => {
-    const arr = Array.isArray(propriedadesServidor)
-      ? propriedadesServidor
-      : Object.values(propriedadesServidor || {});
-    return arr.sort((a, b) => a.id - b.id);
-  }, [propriedadesServidor]);
-
-  const getPropById = (id) =>
-    propsArray.find((p) => p.id === id) || { id, name: "...", color: "Padrao" };
-
-  const centerIndex = visualPos;
-  const prevIndex = getNormalizedIndex(centerIndex - 1);
-  const nextIndex = getNormalizedIndex(centerIndex + 1);
-
-  const currentProp = getPropById(centerIndex);
-  const prevProp = getPropById(prevIndex);
-  const nextProp = getPropById(nextIndex);
-
-  useEffect(() => {
-    function onMachineTransaction(data) {
-      setMachineActive({
-        status: true,
-        valor: data.valor,
-        destinatario: data.destinatario,
-        remetente: data.remetente,
-      });
-    }
-    socket.on("machineTransaction", onMachineTransaction);
-    return () => socket.off("machineTransaction", onMachineTransaction);
-  }, []);
-
-  if (propsArray.length === 0)
-    return (
-      <div
-        style={{
-          height: "100vh",
-          width: "100vw",
-          background: "#020617",
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        Sincronizando...
-      </div>
-    );
+  if (propsArray.length === 0) return <div>Sincronizando...</div>;
 
   return (
-    <div
-      style={{
-        width: "100vw",
-        height: "100vh",
-        overflow: "hidden",
-        position: "relative",
-      }}
-    >
+    <div className="game-container">
       <AnimatePresence mode="wait">
         {machineActive.status && (
           <BoardMachine
@@ -551,162 +108,316 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
         )}
       </AnimatePresence>
 
-      {/* --- HUD SUPERIOR (COM DINHEIRO FORMATADO) --- */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          paddingTop: "25px",
-          display: "flex",
-          justifyContent: "center",
-          zIndex: 50,
-          background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%)",
-          paddingBottom: "50px",
-          pointerEvents: "none",
-        }}
-      >
-        <div
-          className="player-container"
-          style={{ display: "flex", gap: "15px", pointerEvents: "auto" }}
+      <LayoutGroup>
+        <motion.div
+          className={`board-grid ${isTvMode ? "mode-tv" : "mode-tabletop"}`}
+          layout
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
-          {jogadores.map((p) => {
-            const isTurn = p.username === currentTurnUser;
+          {/* HUD CENTRAL */}
+          <div className="board-center">
+            <motion.div
+              layout
+              className="player-container"
+              style={{ display: "flex", gap: "15px", justifyContent: "center" }}
+            >
+              {jogadores.map((p) => {
+                const isTurn = p.username === currentTurnUser;
+                return (
+                  <motion.div
+                    layout
+                    key={p.id}
+                    animate={{
+                      scale: isTurn ? 1.1 : 0.9,
+                      opacity: isTurn ? 1 : 0.6,
+                      y: isTurn ? 5 : 0,
+                    }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: "100px",
+                      padding: "10px 15px",
+                      borderRadius: "12px",
+                      backgroundColor: isTurn
+                        ? "rgba(255, 255, 255, 0.95)"
+                        : "rgba(30, 41, 59, 0.6)",
+                      border: isTurn
+                        ? `3px solid ${p.color}`
+                        : "1px solid rgba(255,255,255,0.1)",
+                      boxShadow: isTurn
+                        ? `0 0 15px ${p.color}, 0 4px 6px rgba(0,0,0,0.3)`
+                        : "0 2px 4px rgba(0,0,0,0.2)",
+                      backdropFilter: "blur(8px)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "12px",
+                        height: "12px",
+                        borderRadius: "50%",
+                        backgroundColor: p.color,
+                        marginBottom: "6px",
+                      }}
+                    />
+                    <div
+                      className="player-name"
+                      style={{
+                        color: isTurn ? "#1f2937" : "#e5e7eb",
+                        fontWeight: "800",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      {p.nome || p.username}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.85rem",
+                        fontWeight: "600",
+                        color: isTurn ? "#059669" : "#9ca3af",
+                      }}
+                    >
+                      {Number(p.money).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+
+            {/* CONTROLES HUD */}
+            <div
+              className="hud-controls"
+              style={{
+                display: "flex",
+                gap: "10px",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div style={{ display: "flex", gap: "5px" }}>
+                <button
+                  onClick={() => setFontScale((s) => Math.max(0.5, s - 0.1))}
+                  style={{
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                  title="Diminuir Fonte"
+                >
+                  A-
+                </button>
+                <button
+                  onClick={() => setFontScale((s) => Math.min(2.5, s + 0.1))}
+                  style={{
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                  title="Aumentar Fonte"
+                >
+                  A+
+                </button>
+              </div>
+
+              <button onClick={() => setIsTvMode(!isTvMode)}>
+                {!isTvMode ? "📺 Modo TV" : "🎲 Modo Mesa"}
+              </button>
+            </div>
+          </div>
+
+          {/* CASAS DO TABULEIRO */}
+          {propsArray.map((prop) => {
+            const { x, y } = getCoords(prop.id);
+            const sideClass = getTileSideClass(x, y);
+            const isCorner = (x === 1 || x === 11) && (y === 1 || y === 11);
+            const corPropriedade = prop.themeColor || prop.color || "#ccc";
+
+            const dono = jogadores.find((j) => {
+              const lista = j.propertiesIds || j.propriedades || [];
+              const arr = Array.isArray(lista) ? lista : Object.values(lista);
+              return arr.some((p) => (p?.id || p) == prop.id);
+            });
+
+            // Lógica de Rotação
+            let rotation = 0;
+            if (!isTvMode) {
+              if (sideClass === "tile-top") rotation = 180;
+              if (sideClass === "tile-left") rotation = 90;
+              if (sideClass === "tile-right") rotation = -90;
+            }
+
+            // Estilo da Faixa Colorida
+            const stripStyle = {
+              position: "absolute",
+              backgroundColor: corPropriedade,
+              zIndex: 5,
+            };
+            if (sideClass === "tile-bottom") {
+              stripStyle.top = 0;
+              stripStyle.width = "100%";
+              stripStyle.height = "15%";
+            }
+            if (sideClass === "tile-top") {
+              stripStyle.bottom = 0;
+              stripStyle.width = "100%";
+              stripStyle.height = "15%";
+            }
+            if (sideClass === "tile-left") {
+              stripStyle.right = 0;
+              stripStyle.width = "10%";
+              stripStyle.height = "100%";
+            }
+            if (sideClass === "tile-right") {
+              stripStyle.left = 0;
+              stripStyle.width = "10%";
+              stripStyle.height = "100%";
+            }
+
+            // --- LÓGICA DE ALINHAMENTO COMBINADA ---
+            const isVia =
+              prop.name && prop.name.toLowerCase().startsWith("via");
+
+            // 1. Alinhamento Horizontal (Esquerda/Direita)
+            let alignItems = "center";
+            let textAlign = "center";
+            let textPadding = "2px";
+
+            if (!isCorner && !isVia) {
+              if (sideClass === "tile-left") {
+                alignItems = "flex-start";
+                textAlign = "left";
+                textPadding = "0 0 0 8px";
+              } else if (sideClass === "tile-right") {
+                alignItems = "flex-end";
+                textAlign = "right";
+                textPadding = "0 8px 0 0";
+              }
+            }
+
+            // 2. Alinhamento Vertical (Cima/Baixo)
+            // Default é center, mas mudamos para "colar" na faixa colorida
+            let justifyContent = "center";
+
+            if (sideClass === "tile-top") {
+              // Barra embaixo -> Texto alinha para baixo (fim)
+              justifyContent = "flex-end";
+            } else if (sideClass === "tile-bottom") {
+              // Barra em cima -> Texto alinha para cima (início)
+              justifyContent = "flex-start";
+            }
 
             return (
-              <motion.div
-                layout
-                key={p.id}
-                className="player-card"
-                initial={false}
-                animate={{
-                  scale: isTurn ? 1.1 : 0.9,
-                  opacity: isTurn ? 1 : 0.6,
-                  y: isTurn ? 5 : 0,
-                }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              <div
+                key={prop.id}
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minWidth: "100px",
-                  padding: "10px 15px",
-                  borderRadius: "12px",
-                  backgroundColor: isTurn
-                    ? "rgba(255, 255, 255, 0.95)"
-                    : "rgba(30, 41, 59, 0.6)",
-                  border: isTurn
-                    ? `3px solid ${p.color}`
-                    : "1px solid rgba(255,255,255,0.1)",
-                  boxShadow: isTurn
-                    ? `0 0 15px ${p.color}, 0 4px 6px rgba(0,0,0,0.3)`
-                    : "0 2px 4px rgba(0,0,0,0.2)",
-                  backdropFilter: "blur(8px)",
+                  gridColumn: x,
+                  gridRow: y,
+                  backgroundColor: dono ? dono.color : "white",
+                  border: "1px solid #ddd",
+                  position: "relative",
+                  overflow: "hidden",
                 }}
               >
-                <div
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    backgroundColor: p.color,
-                    marginBottom: "6px",
-                    border: isTurn ? "none" : "1px solid rgba(255,255,255,0.5)",
-                    boxShadow: isTurn ? `0 0 5px ${p.color}` : "none",
-                  }}
-                />
+                {!isCorner && <div style={stripStyle} />}
 
-                <div
-                  className="player-name"
+                <motion.div
+                  animate={{ rotate: rotation }}
                   style={{
-                    color: isTurn ? "#1f2937" : "#e5e7eb",
-                    fontWeight: "800",
-                    fontSize: "0.9rem",
-                    marginBottom: "2px",
-                    textAlign: "center",
+                    zIndex: 6,
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+
+                    // Aplica o alinhamento vertical calculado
+                    justifyContent: justifyContent,
+
+                    // Aplica o alinhamento horizontal calculado
+                    alignItems: alignItems,
+
+                    // Padding ajustado para 25% para casar com a altura da barra
+                    paddingTop: sideClass === "tile-bottom" ? "15%" : "0",
+                    paddingBottom: sideClass === "tile-top" ? "15%" : "0",
+                    paddingLeft: sideClass === "tile-right" ? "20%" : "0",
+                    paddingRight: sideClass === "tile-left" ? "20%" : "0",
                   }}
                 >
-                  {p.nome || p.username}
-                </div>
+                  <div
+                    style={{
+                      flex:
+                        sideClass === "tile-top" || sideClass === "tile-bottom"
+                          ? "0 1 auto"
+                          : 1, // Impede que estique demais em cima/baixo
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: justifyContent, // Reforça alinhamento vertical
+                      alignItems: alignItems,
+                      textAlign: textAlign,
+                      color: dono ? "white" : "#000",
+                      textShadow: dono ? "2px 2px 4px rgba(0,0,0,0.5)" : "none",
+                      width: "100%",
+                      padding: textPadding,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: `${0.9 * fontScale}rem`,
+                        fontWeight: "900",
+                        textTransform: "uppercase",
+                        lineHeight: "0.95",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {prop.name}
+                    </div>
 
-                <div
-                  className="player-money"
-                  style={{
-                    fontSize: "0.85rem",
-                    fontWeight: "600",
-                    color: isTurn ? "#059669" : "#9ca3af",
-                  }}
-                >
-                  {/* FORMATAÇÃO DO DINHEIRO AQUI */}
-                  {Number(p.money).toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })}
-                </div>
-              </motion.div>
+                    {!dono && !isCorner && (prop.price || prop.valor) && (
+                      <div
+                        style={{
+                          fontSize: `${0.8 * fontScale}rem`,
+                          fontWeight: "700",
+                          marginTop: "4px",
+                          color: "#16a34a",
+                        }}
+                      >
+                        R$ {prop.price || prop.valor}
+                      </div>
+                    )}
+
+                    {prop.level > 0 && (
+                      <div
+                        style={{
+                          fontSize: `${1.2 * fontScale}rem`,
+                          color: dono ? "#fff" : "#f59e0b",
+                        }}
+                      >
+                        {"★".repeat(prop.level)}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
             );
           })}
-        </div>
-      </div>
 
-      {/* PALCO DO CARROSSEL */}
-      <div className="carousel-stage">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <PropertyCard
-            key={`prop-${prevProp.id}`}
-            prop={prevProp}
-            positionStatus="prev"
-            playersHere={jogadores.filter(
-              (p) =>
-                Number(p.posicao) === prevIndex &&
-                p.username !== playerToFollow?.username,
-            )}
-          />
-
-          <PropertyCard
-            key={`prop-${currentProp.id}`}
-            prop={currentProp}
-            positionStatus="current"
-            playersHere={[
-              ...jogadores.filter(
-                (p) =>
-                  Number(p.posicao) === centerIndex &&
-                  p.username !== playerToFollow?.username,
-              ),
-              playerToFollow,
-            ].filter(Boolean)}
-          />
-
-          <PropertyCard
-            key={`prop-${nextProp.id}`}
-            prop={nextProp}
-            positionStatus="next"
-            playersHere={jogadores.filter(
-              (p) =>
-                Number(p.posicao) === nextIndex &&
-                p.username !== playerToFollow?.username,
-            )}
-          />
-        </AnimatePresence>
-
-        <div
-          style={{
-            position: "absolute",
-            bottom: "50px",
-            width: "100%",
-            textAlign: "center",
-            color: "rgba(255,255,255,0.5)",
-            fontSize: "0.9rem",
-            textTransform: "uppercase",
-            letterSpacing: "2px",
-          }}
-        >
-          {visualPos !== realTargetPos ? "Viajando..." : currentProp?.name}
-        </div>
-      </div>
+          {/* PEÕES */}
+          {jogadores.map((player) => (
+            <GamePawn
+              key={player.id}
+              player={player}
+              targetPos={player.posicao}
+              playersOnSameSquare={jogadores.filter(
+                (p) => Number(p.posicao) === Number(player.posicao),
+              )}
+            />
+          ))}
+        </motion.div>
+      </LayoutGroup>
     </div>
   );
 };

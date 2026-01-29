@@ -3,17 +3,15 @@ import { useGameStore } from "./store";
 
 export const getAvailableActions = (propriedade, username, isMyTurn) => {
   const actions = [];
+  // Hook chamado aqui funciona desde que o componente pai force o re-render (que fizemos acima)
   const saldo = useGameStore((state) => state.meAsObject?.saldo || 0);
 
   // Segurança básica
   if (!propriedade || !propriedade.name) return [];
 
   // --- 1. DEFINIÇÃO DE VARIÁVEIS ---
-  // CORREÇÃO: Tenta pegar o dono de ambas as formas possíveis (owner ou ownerUsername)
-  const dono = propriedade.ownerUsername || propriedade.owner;
-
+  const dono = propriedade.ownerUsername || propriedade.dono; // Garante pegar de ambos os lugares
   const isDono = dono === username;
-  // Se 'dono' for nulo, undefined ou string vazia, consideramos sem dono
   const semDono = !dono;
 
   const isEstacaoOrCompanhia =
@@ -22,21 +20,18 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
   const isSorte = propriedade.color === "Sorte";
   const isTaxa = propriedade.color === "Taxa";
 
-  // Verifica se o ID existe (pode ser 0, então checamos undefined)
   const propId = propriedade.id !== undefined ? propriedade.id : null;
+  if (propId === null) return []; // Retorna vazio se não tiver ID válido
 
   // ============================================================
-  // GRUPO A: AÇÕES DE TABULEIRO (Exigem que seja SUA VEZ)
+  // GRUPO A: AÇÕES DE TABULEIRO
   // ============================================================
   if (isMyTurn) {
     if (isTaxa) {
       actions.push({
         label: `Pagar a taxa (R$ ${propriedade.taxAmount})`,
         variant: "success",
-        onClick: () => {
-          if (propId === null) return alert("Erro: ID inválido");
-          socket.emit("bankPayment", propriedade.taxAmount);
-        },
+        onClick: () => socket.emit("bankPayment", propriedade.taxAmount),
       });
     }
 
@@ -45,40 +40,32 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
         label: `✦ Sortear carta ✦`,
         variant: "success",
         onClick: (e) => {
-          // --- LÓGICA DE TRAVAMENTO ---
-          // Verifica se o evento existe para evitar erros
           if (e && e.currentTarget) {
-            e.currentTarget.disabled = true; // Desabilita o botão
-            e.currentTarget.style.opacity = "0.5"; // Dá feedback visual de desabilitado
-            e.currentTarget.innerText = "Carta gerada"; // (Opcional) Muda o texto
-            e.currentTarget.style.pointerEvents = "none"; // Garante que não receba mais cliques
+            e.currentTarget.disabled = true;
+            e.currentTarget.style.opacity = "0.5";
+            e.currentTarget.innerText = "Carta gerada...";
           }
           socket.emit("getMessage");
         },
       });
     }
 
-    // COMPRAR (Só se ninguém for dono e não for casa especial)
     if (
       semDono &&
       preco > 0 &&
       !isSorte &&
       !isTaxa &&
       !["Comeco", "Prisao", "Visitante", "Estacionamento"].includes(
-        propriedade.color
+        propriedade.color,
       )
     ) {
       actions.push({
         label: `Comprar (R$ ${preco.toLocaleString("pt-BR")})`,
         variant: "success",
-        onClick: () => {
-          if (propId === null) return alert("Erro: ID inválido");
-          socket.emit("buyProperty", propId);
-        },
+        onClick: () => socket.emit("buyProperty", propId),
       });
     }
 
-    // PAGAR ALUGUEL (Se tem dono e não sou eu)
     if (!isDono && !semDono) {
       const nivel = propriedade.level || 0;
       const valorAluguel =
@@ -89,21 +76,13 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
       actions.push({
         label: `Pagar Aluguel -> ${dono} (R$ ${valorAluguel})`,
         variant: "success",
-        // RECEBE O EVENTO 'e' AQUI
         onClick: (e) => {
-          // --- LÓGICA DE TRAVAMENTO ---
-          // Verifica se o evento existe para evitar erros
-          if (e && e.currentTarget && saldo >= valorAluguel) {
-            console.log("dentro do if")
-            e.currentTarget.disabled = true; // Desabilita o botão
-            e.currentTarget.style.opacity = "0.5"; // Dá feedback visual de desabilitado
-            e.currentTarget.innerText = "Aluguel pago ✓"; // (Opcional) Muda o texto
-            e.currentTarget.style.pointerEvents = "none"; // Garante que não receba mais cliques
+          if (saldo < valorAluguel) return alert("Saldo insuficiente!");
+          if (e && e.currentTarget) {
+            e.currentTarget.disabled = true;
+            e.currentTarget.style.opacity = "0.5";
+            e.currentTarget.innerText = "Pago ✓";
           }
-
-          if (propId === null) return alert("Erro: ID inválido");
-
-          // Emite o pagamento
           socket.emit("playerRentPay", dono, valorAluguel, propriedade.id);
         },
       });
@@ -111,13 +90,9 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
   }
 
   // ============================================================
-  // GRUPO B: AÇÕES DE GERENCIAMENTO (Apenas se for DONO)
+  // GRUPO B: AÇÕES DE GERENCIAMENTO (Minhas Propriedades)
   // ============================================================
-  // Estas ações aparecem INDEPENDENTE do turno (ex: no Modal),
-  // mas exigem estritamente ser o DONO.
-
   if (isDono) {
-    // 1. CONSTRUIR / DESTRUIR (Exceto Estação/Companhia)
     if (!isEstacaoOrCompanhia) {
       const nivelAtual = propriedade.level || 0;
       const custoUpgrade = propriedade.levelUpCost || 0;
@@ -125,13 +100,15 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
       // Construir (Máximo nível 5 - Hotel)
       if (nivelAtual < 5) {
         const proximoNivel = nivelAtual === 4 ? "Hotel" : "Casa";
+        const podePagar = saldo >= custoUpgrade;
+
         actions.push({
-          label: `Construir ${proximoNivel} -> R$ ${custoUpgrade}`,
-          variant: "primary",
+          label: `Construir ${proximoNivel} (R$ ${custoUpgrade})`,
+          variant: podePagar ? "primary" : "disabled", // Visualmente indica se pode pagar
+          disabled: !podePagar,
           onClick: () => {
-            if (propId === null) return;
-            console.log(`🏠 Upgrade ID: ${propId}`);
-            socket.emit("upgradeProperty", propId);
+            if (podePagar) socket.emit("upgradeProperty", propId);
+            else alert("Saldo insuficiente para construir.");
           },
         });
       }
@@ -139,36 +116,26 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
       // Demolir
       if (nivelAtual >= 1) {
         const nivelAnterior = nivelAtual === 5 ? "Hotel" : "Casa";
+
         actions.push({
-          label: `Destruir ${nivelAnterior} (+R$ ${custoUpgrade})`,
+          label: `Vender ${nivelAtual === 5 ? "Hotel" : "Casa"} (+R$ ${custoUpgrade})`,
           variant: "primary",
-          onClick: () => {
-            if (propId === null) return;
-            console.log(`(-) Downgrade ID: ${propId}`);
-            socket.emit("downgradeProperty", propId);
-          },
+          onClick: () => socket.emit("downgradeProperty", propId),
         });
       }
     }
 
-    // actions.push({
-    //   label: `Vender para outro jogador`,
-    //   variant: "danger",
-    //   onClick: () => {
-    //     if (propId === null) return;
-    //     if (window.confirm("Vender esta propriedade para o banco?")) {
-    //       socket.emit("sellToBank", propId);
-    //     }
-    //   },
-    // });
-
-    // 2. VENDER (Para qualquer propriedade)
     actions.push({
-      label: `Vender -> R$ ${propriedade.price * 0.8}`,
+      label: `Vender para o Banco (R$ ${(propriedade.price * 0.8).toFixed(0)})`,
       variant: "danger",
       onClick: () => {
-        if (propId === null) return;
-        socket.emit("sellToBank", propId);
+        if (
+          window.confirm(
+            `Tem certeza que deseja vender ${propriedade.name} por R$ ${(propriedade.price * 0.8).toFixed(0)}?`,
+          )
+        ) {
+          socket.emit("sellToBank", propId);
+        }
       },
     });
   }

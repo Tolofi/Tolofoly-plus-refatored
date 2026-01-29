@@ -1,5 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:ital,wght@0,200..1000;1,200..1000&display=swap");
 
 :root {
   /* --- CORES --- */
@@ -18,7 +18,7 @@
 }
 
 * {
-  font-family: "Nunito", sans-serif;
+  font-family: "Manrope", sans-serif;
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
 }
@@ -26,7 +26,7 @@
 /* 1. RESET E LAYOUT GERAL */
 body {
   background-color: var(--bg-app);
-  font-family: "Nunito", sans-serif;
+  font-family: "Manrope", sans-serif;
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -39,7 +39,7 @@ body {
 h1,
 h2,
 h3 {
-  font-family: "Nunito", sans-serif;
+  font-family: "Manrope", sans-serif;
 }
 
 button:focus {
@@ -241,7 +241,7 @@ button:focus {
   padding: 0 20px;
   margin: 0 auto;
 
-  font-family: "Nunito", sans-serif;
+  font-family: "Manrope", sans-serif;
   font-weight: 600;
   color: #1f2937;
   position: relative;
@@ -306,7 +306,7 @@ button:focus {
   border-radius: 24px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  font-family: "Nunito", sans-serif;
+  font-family: "Manrope", sans-serif;
   /* border: 1px solid #f0f1f5;} */
 }
 
@@ -328,7 +328,7 @@ button:focus {
   border-radius: 8px;
   padding: 5px 10px;
   font-weight: 600;
-  font-family: "Nunito", sans-serif;
+  font-family: "Manrope", sans-serif;
   text-align: center;
   font-size: 18px;
   width: fit-content;
@@ -512,7 +512,7 @@ button:focus {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   padding: 0 20px;
   margin: 0 auto;
-  font-family: "Nunito", sans-serif;
+  font-family: "Manrope", sans-serif;
   font-weight: 600;
   color: #1f2937;
   left: 0vw;
@@ -527,6 +527,9 @@ button:focus {
 .down-bar-buttom {
   flex: 1;
   color: #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .waiting-turn-div {
@@ -745,7 +748,7 @@ button:focus {
 
 /* Título */
 .magic-modal-title {
-  font-family: "Nunito", sans-serif;
+  font-family: "Manrope", sans-serif;
   margin: 0;
   font-size: 30px;
   color: #1f2937;
@@ -761,7 +764,7 @@ button:focus {
   font-size: 1rem;
   color: var(--text-main);
   outline: none;
-  font-family: "Nunito", sans-serif;
+  font-family: "Manrope", sans-serif;
   transition: box-shadow 0.2s;
   /* width: 100%;
   padding: 14px 16px;

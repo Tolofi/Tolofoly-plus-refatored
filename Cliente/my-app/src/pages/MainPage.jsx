@@ -26,10 +26,17 @@ export const MainPage = () => {
 
   // 1. Buscando dados do Zustand
   const isMyTurn = useGameStore((state) => state.isMyTurn);
+
+  // Extrai os valores dos hooks separadamente (sempre executa os hooks)
+  const storeUsername = useGameStore((state) => state.username);
+  const objectUsername = useGameStore((state) => state.meAsObject?.username);
+
+  // Aplica a lógica de prioridade depois
   const username =
-    useGameStore((state) => state.username) ||
-    useGameStore((state) => state.meAsObject?.username) ||
+    storeUsername ||
+    objectUsername ||
     localStorage.getItem("monopoly_username");
+
   const playerObject = useGameStore((state) => state.meAsObject);
   const saldo = useGameStore((state) => state.meAsObject?.saldo || 0);
   const turnPhase = useGameStore((state) => state.turnPhase);
@@ -182,8 +189,8 @@ export const MainPage = () => {
 
   function bankMoneyRequest() {
     // CORREÇÃO: Forçar conversão para Número aqui também
-    const valorReal = Number(modalQtd); 
-    
+    const valorReal = Number(modalQtd);
+
     socket.emit("getMoneyByPlayer", valorReal);
     setReciboShow({
       status: true,

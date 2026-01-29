@@ -1,66 +1,64 @@
-  import { create } from "zustand";
-  import { socket } from "../socket";
+import { create } from "zustand";
+import { socket } from "../socket";
 
-  export const useGameStore = create((set) => ({
-    // 1. DADOS
-    username: "",
-    isConnected: false,
-    isMyTurn: true,
-    isDiceRolled: false,
-    meAsObject: {},
-    currentProperty: null,
-    turnPhase: "WAITING",
-    dice: 0,
-    money: 0,
-    history: [],
+export const useGameStore = create((set) => ({
+  // 1. DADOS
+  username: "",
+  isConnected: false,
+  isMyTurn: true,
+  isDiceRolled: false,
+  meAsObject: {},
+  currentProperty: null,
+  turnPhase: "WAITING",
+  dice: 0,
+  money: 0,
+  history: [],
 
-    // Adicionamos o Map aqui para guardar as propriedades
-    properties: new Map(),
-    players: [],
+  // Adicionamos o Map aqui para guardar as propriedades
+  properties: new Map(),
+  players: [],
 
-    // 2. AÇÕES
-    setPlayers: (newPlayers) => set({players: newPlayers}),
-    setHistory: (newHistory) => set({history: newHistory}),
-    addHistoryItem: (item) => set((state) => ({ history: [...state.history, item] })),
-    setTurnPhase: (phase) => set({ turnPhase: phase }),
-    setCurrentProperty: (prop) => set({ currentProperty: prop }),
-    setNome: (novoNome) => set({ username: novoNome }),
-    setConectado: (status) => set({ isConnected: status }),
-    setIsMyTurn: (status) => set({ isMyTurn: status }),
-    setDiceRolled: (status) => set({ isDiceRolled: status }),
-    setDice: (number) => set({ dice: number }),
-    setMeAsObject: (player) => set({ meAsObject: player }), 
+  // 2. AÇÕES
+  setPlayers: (newPlayers) => set({ players: newPlayers }),
+  setHistory: (newHistory) => set({ history: newHistory }),
+  addHistoryItem: (item) =>
+    set((state) => ({ history: [...state.history, item] })),
+  setTurnPhase: (phase) => set({ turnPhase: phase }),
+  setCurrentProperty: (prop) => set({ currentProperty: prop }),
+  setNome: (novoNome) => set({ username: novoNome }),
+  setConectado: (status) => set({ isConnected: status }),
+  setIsMyTurn: (status) => set({ isMyTurn: status }),
+  setDiceRolled: (status) => set({ isDiceRolled: status }),
+  setDice: (number) => set({ dice: number }),
+  setMeAsObject: (player) => set({ meAsObject: player }),
 
-    // AÇÃO NOVA: Recebe o array, transforma em Map e salva
-    updateProperties: (dataArray) => {
-      let mapTemporario = new Map();
-      let id = 0;
+  // AÇÃO NOVA: Recebe o array, transforma em Map e salva
+  updateProperties: (dataArray) => {
+    // Criamos um Map novo para garantir que o Zustand dispare a re-renderização
+    const mapTemporario = new Map();
+    let autoId = 0;
 
-      // Loop corrigido
-      for (const item of dataArray) {
-        // Usa o ID do item se tiver, se não, usa o contador 0, 1, 2...
-        const finalId = item.id ?? id;
+    dataArray.forEach((item) => {
+      const finalId =
+        item.id !== undefined && item.id !== null ? item.id : autoId;
+      mapTemporario.set(finalId, item);
+      if (item.id === undefined || item.id === null) autoId++;
+    });
 
-        mapTemporario.set(finalId, item);
+    // Ao dar set em um novo Map, todos os componentes que usam 'state.properties' atualizam
+    set({ properties: mapTemporario });
+  },
 
-        // Só incrementa o contador se precisou usar ele
-        if (item.id == null) id++;
-      }
+  updatePlayersArray(data) {
+    let arrayTemporario = data;
+    set({ players: arrayTemporario });
+  },
 
-      // Salva o novo Map no estado
-      set({ properties: mapTemporario });
-    },
+  updatePlayer: (dataObject) => {
+    let playerTemporario = dataObject;
 
-    updatePlayersArray(data) {
-      let arrayTemporario = data;
-      set({ players: arrayTemporario });
-    },
-
-    updatePlayer: (dataObject) => {
-      let playerTemporario = dataObject;
-
-      // Salva o novo Map no estado
-      set({ meAsObject: playerTemporario });
-      set({ money: playerTemporario.saldo})
-    },
-  }));
+    // Salva o novo Map no estado
+    set({ meAsObject: playerTemporario });
+    set({ money: playerTemporario.saldo });
+  },
+}));
