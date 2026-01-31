@@ -75,8 +75,22 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
     jogadores[0]?.username || "",
   );
 
-  // Estado para controle do tamanho da fonte (1 = padrão)
   const [fontScale, setFontScale] = useState(1);
+
+  // --- RESTAURADO: LÓGICA DA MAQUININHA ---
+  useEffect(() => {
+    function onMachineTransaction(data) {
+      setMachineActive({
+        status: true,
+        valor: data.valor,
+        destinatario: data.destinatario,
+        remetente: data.remetente,
+      });
+    }
+
+    socket.on("machineTransaction", onMachineTransaction);
+    return () => socket.off("machineTransaction", onMachineTransaction);
+  }, []);
 
   useEffect(() => {
     const handleTurnUpdate = (data) => {
@@ -101,8 +115,13 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
             destinatario={machineActive.destinatario}
             remetente={machineActive.remetente}
             onFinish={() => {
+              // Envia o recibo de volta para o servidor processar o pagamento
+              socket.emit("receipt", {
+                destinatario: machineActive.destinatario,
+                valor: machineActive.valor,
+                remetente: machineActive.remetente,
+              });
               setMachineActive(false);
-              socket.emit("receipt", { ...machineActive });
             }}
           />
         )}
@@ -189,7 +208,6 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
               })}
             </motion.div>
 
-            {/* CONTROLES HUD */}
             <div
               className="hud-controls"
               style={{
@@ -197,6 +215,7 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                 gap: "10px",
                 alignItems: "center",
                 justifyContent: "center",
+                marginTop: "10px",
               }}
             >
               <div style={{ display: "flex", gap: "5px" }}>
@@ -207,7 +226,6 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                     cursor: "pointer",
                     fontWeight: "bold",
                   }}
-                  title="Diminuir Fonte"
                 >
                   A-
                 </button>
@@ -218,7 +236,6 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                     cursor: "pointer",
                     fontWeight: "bold",
                   }}
-                  title="Aumentar Fonte"
                 >
                   A+
                 </button>
@@ -243,7 +260,6 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
               return arr.some((p) => (p?.id || p) == prop.id);
             });
 
-            // Lógica de Rotação
             let rotation = 0;
             if (!isTvMode) {
               if (sideClass === "tile-top") rotation = 180;
@@ -251,7 +267,6 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
               if (sideClass === "tile-right") rotation = -90;
             }
 
-            // Estilo da Faixa Colorida
             const stripStyle = {
               position: "absolute",
               backgroundColor: corPropriedade,
@@ -278,16 +293,11 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
               stripStyle.height = "100%";
             }
 
-            // --- LÓGICA DE ALINHAMENTO COMBINADA ---
-            const isVia =
-              prop.name && prop.name.toLowerCase().startsWith("via");
-
-            // 1. Alinhamento Horizontal (Esquerda/Direita)
             let alignItems = "center";
             let textAlign = "center";
             let textPadding = "2px";
 
-            if (!isCorner && !isVia) {
+            if (!isCorner && !prop.name?.toLowerCase().startsWith("via")) {
               if (sideClass === "tile-left") {
                 alignItems = "flex-start";
                 textAlign = "left";
@@ -299,17 +309,9 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
               }
             }
 
-            // 2. Alinhamento Vertical (Cima/Baixo)
-            // Default é center, mas mudamos para "colar" na faixa colorida
             let justifyContent = "center";
-
-            if (sideClass === "tile-top") {
-              // Barra embaixo -> Texto alinha para baixo (fim)
-              justifyContent = "flex-end";
-            } else if (sideClass === "tile-bottom") {
-              // Barra em cima -> Texto alinha para cima (início)
-              justifyContent = "flex-start";
-            }
+            if (sideClass === "tile-top") justifyContent = "flex-end";
+            else if (sideClass === "tile-bottom") justifyContent = "flex-start";
 
             return (
               <div
@@ -333,14 +335,8 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                     height: "100%",
                     display: "flex",
                     flexDirection: "column",
-
-                    // Aplica o alinhamento vertical calculado
                     justifyContent: justifyContent,
-
-                    // Aplica o alinhamento horizontal calculado
                     alignItems: alignItems,
-
-                    // Padding ajustado para 25% para casar com a altura da barra
                     paddingTop: sideClass === "tile-bottom" ? "15%" : "0",
                     paddingBottom: sideClass === "tile-top" ? "15%" : "0",
                     paddingLeft: sideClass === "tile-right" ? "20%" : "0",
@@ -349,13 +345,9 @@ export const Board = ({ propriedadesServidor, jogadores }) => {
                 >
                   <div
                     style={{
-                      flex:
-                        sideClass === "tile-top" || sideClass === "tile-bottom"
-                          ? "0 1 auto"
-                          : 1, // Impede que estique demais em cima/baixo
                       display: "flex",
                       flexDirection: "column",
-                      justifyContent: justifyContent, // Reforça alinhamento vertical
+                      justifyContent: justifyContent,
                       alignItems: alignItems,
                       textAlign: textAlign,
                       color: dono ? "white" : "#000",

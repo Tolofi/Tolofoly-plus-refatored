@@ -545,13 +545,13 @@ button:focus {
 .waiting-turn-title {
   font-weight: 900;
   color: #1f2937;
-  font-size: 20px;
+  font-size: 25px;
 }
 
 .waiting-message {
   font-weight: 600;
   color: var(--text-muted);
-  font-size: 18px;
+  font-size: 23px;
 }
 
 /* Container Principal - Estilo Card Flutuante Branco */

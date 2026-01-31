@@ -73,7 +73,9 @@ export const MinhasPropriedades = () => {
     };
 
     socket.on("propertiesUpdate", handlePropertiesUpdate);
-
+    socket.on("connect", () => {
+      navigate("/main");
+    })
     // Cleanup ao desmontar
     return () => {
       socket.off("propertiesUpdate", handlePropertiesUpdate);

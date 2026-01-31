@@ -72,9 +72,9 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
         propriedade.rent && propriedade.rent[nivel]
           ? propriedade.rent[nivel]
           : 0;
-
+      const multiplier = propriedade.rentMultiplier || 1;
       actions.push({
-        label: `Pagar Aluguel -> ${dono} (R$ ${valorAluguel})`,
+        label: `Pagar Aluguel -> ${dono} (R$ ${Math.round(valorAluguel * multiplier)})`,
         variant: "success",
         onClick: (e) => {
           if (saldo < valorAluguel) return alert("Saldo insuficiente!");
@@ -83,7 +83,7 @@ export const getAvailableActions = (propriedade, username, isMyTurn) => {
             e.currentTarget.style.opacity = "0.5";
             e.currentTarget.innerText = "Pago ✓";
           }
-          socket.emit("playerRentPay", dono, valorAluguel, propriedade.id);
+          socket.emit("playerRentPay", dono, valorAluguel * multiplier, propriedade.id);
         },
       });
     }

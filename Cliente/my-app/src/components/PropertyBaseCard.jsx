@@ -182,7 +182,7 @@ export const NuPropertyCard = ({ propriedade }) => {
         {propriedade.alertMessage && (
           <span
             style={{
-              fontSize: "0.8rem",
+              fontSize: "0.9rem",
               color: alertColor(),
               textAlign: "center",
               ...glowStyleAlertMessage,
@@ -251,7 +251,7 @@ export const NuPropertyCard = ({ propriedade }) => {
                           textDecoration: "line-through",
                           opacity: 0.7,
                           marginRight: "5px",
-                          fontSize: "0.9rem", // Um pouco menor
+                          fontSize: "1.4rem", // Um pouco menor
                           color: isDarkContext ? "#aaa" : "#555",
                         }}
                       >
@@ -327,7 +327,7 @@ export const NuPropertyCard = ({ propriedade }) => {
               textShadow: isDarkContext ? "0 0 8px #4CAF50" : "none",
             }}
           >
-            R$ {propriedade.acummulatedCapital || 0}
+            R$ {Math.round(propriedade.acummulatedCapital) || 0}
           </span>
         </div>
       </div>
