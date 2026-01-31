@@ -2,5 +2,13 @@
   "dependencies": {
     "@google/genai": "^1.34.0",
     "@google/generative-ai": "^0.24.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix Server\" \"npm run dev --prefix Cliente/my-app\"",
+    "build": "npm run build --prefix Cliente/my-app && npm run build --prefix Server",
+    "start": "concurrently \"npm start --prefix Server\" \"npm run preview --prefix Cliente/my-app\""
   }
 }
