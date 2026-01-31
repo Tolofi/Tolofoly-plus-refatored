@@ -558,12 +558,6 @@ export class SocketAdmin {
           Memory.setGlobalHour(novoHorario);
           Memory.randomizeWeather();
           this.emitPropertiesUpdate();
-
-          const icon = this.isDay ? "☀️" : "🌙";
-          this.io.emit(
-            "notification",
-            `${icon} O horário mudou para: ${novoHorario.toUpperCase()}`,
-          );
         }
 
         this.io.to(nextSocketId).emit("yourTurn", { hasRolled: false });
@@ -572,10 +566,10 @@ export class SocketAdmin {
 
         // LEILÃO (Mecânica de Piedade/Aleatória)
         this.turnosSemLeilao++;
-        const sorte = Math.floor(Math.random() * 10) + 1 === 1;
-        const garantia = this.turnosSemLeilao >= 10;
+        const sorte = Math.random() < 0.05; // 3% de chance
+        // const garantia = this.turnosSemLeilao >= 10;
 
-        if ((sorte || garantia) && this.leilaoAprovadoTurnos === 0) {
+        if ((sorte) && this.leilaoAprovadoTurnos === 0) {
           this.leilaoAprovadoTurnos = 1;
           this.io.emit("leilaoAprovado", {
             title: "LEILÃO APROVADO!",
