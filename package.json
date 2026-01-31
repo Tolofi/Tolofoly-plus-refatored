@@ -9,6 +9,6 @@
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix Server\" \"npm run dev --prefix Cliente/my-app\"",
     "build": "npm run build --prefix Cliente/my-app && npm run build --prefix Server",
-    "start": "concurrently \"npm start --prefix Server\" \"npm run preview --prefix Cliente/my-app\""
+    "start": "concurrently \"npm start --prefix Server\" \"npm run dev --prefix Cliente/my-app\""
   }
 }
