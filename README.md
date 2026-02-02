@@ -53,7 +53,9 @@ git clone [https://github.com/Tolofi/Tolofoly-plus-refatored.git](https://github
 </pre>
 
 ### Entre na pasta do servidor
+<pre>
 cd tolofoly-plus-refatored/server
+</pre>
 
 ### Instale as dependências e rode
 <pre>
