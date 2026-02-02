@@ -77,7 +77,7 @@ cd Cliente/my-app
 npm install
 npm run dev
 </pre>
-### Acesse o link local (ex: http://localhost:5173)
+Acesse o link local (ex: http://localhost:5173)
 
 ### Passo 3: Jogando
 Abra o link do front-end no seu PC (ele será a TV/Tabuleiro).
