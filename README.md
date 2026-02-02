@@ -62,7 +62,7 @@ cd tolofoly-plus-refatored/server
 npm install
 npm run dev
 </pre>  
-# O terminal deve confirmar: "Server running on port 3000"
+O terminal deve confirmar: "Server running on port 3000"
 
 ## Passo 2: O Cliente (TV + Mobile)
 A interface visual que renderiza o tabuleiro e o controle.
@@ -79,7 +79,7 @@ npm run dev
 </pre>
 Acesse o link local (ex: http://localhost:5173)
 
-### Passo 3: Jogando
+## Passo 3: Jogando
 Abra o link do front-end no seu PC (ele será a TV/Tabuleiro).
 
 Na tela inicial, clique em "**Colocar IP**". Se você for a primeira pessoa a se conectar, você precisará digitar o ip e a porta manualmente. Depois se mais pessoas forem jogar no seu servidor, basta clicar no botão "**compartilhar IP**" e para os outros jogadores basta clicar em "**Colocar IP**", em seguida "**Escanear QR code**", aceitar as permissões e pronto. Se o ip estiver correto, o servidor rodando e você na mesma rede wifi do servidor você deverá estar conectado.
