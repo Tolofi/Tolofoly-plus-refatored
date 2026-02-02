@@ -612,7 +612,6 @@ export class Carta {
   ];
 
   static cartaAzarPublica: arrayC = [
-    // --- 50 CARTAS DE PREJUÍZO FINANCEIRO (PAGAMENTOS) ---
     [
       "${jogadorPrincipal}, você caiu no conto do 'Urubu do Pix' acreditando que se enviasse 50 reais voltariam 500. Obviamente, o único retorno que você teve foi a vergonha e o bloqueio no WhatsApp. Pague 100 pela ingenuidade.",
       false,

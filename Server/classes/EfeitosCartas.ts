@@ -1,9 +1,18 @@
 import { Memory } from "./Memory";
 import { Banco } from "./Banco";
 
+/**
+ * Classe EfeitoCarta - Implementa os efeitos de cartas de sorte/azar do jogo
+ * Processa ações como movimentação, transações financeiras, prisão, etc
+ * Cada método corresponde a um efeito possível de uma carta
+ */
 export class EfeitoCarta {
     /**
-     * 1. Transações simples entre Banco e Jogador (Heranças, Prêmios, Multas)
+     * Altera o saldo do jogador (prêmios ou multas)
+     * Transações diretas entre banco e jogador
+     * @param username - Nome do jogador
+     * @param valor - Valor a adicionar (positivo) ou descontar (negativo)
+     * @returns Mensagem descritiva da ação
      */
     static alterarSaldo(username: string, valor: number): string {
         const player = Memory.getPlayerByUsername(username);
@@ -19,7 +28,12 @@ export class EfeitoCarta {
     }
 
     /**
-     * 2. Transações entre jogadores (Apostas, Serviços, Presentes)
+     * Realiza transferência monetária entre dois jogadores
+     * Exemplo: Apostas, pagamentos de serviços, presentes
+     * @param de - Username do jogador que envia
+     * @param para - Username do jogador que recebe
+     * @param valor - Valor a transferir
+     * @returns Mensagem descritiva do resultado
      */
     static transferenciaEntreJogadores(de: string, para: string, valor: number): string {
         const res = Banco.transacaoMonetaria(valor, de, para);
@@ -27,7 +41,11 @@ export class EfeitoCarta {
     }
 
     /**
-     * 3. Teleporte para casa específica (Vá para o Início, Vá para o Aeroporto)
+     * Teleporta o jogador para uma casa específica no tabuleiro
+     * Exemplo: "Vá para o Ponto de Partida", "Vá para a Estação"
+     * @param username - Nome do jogador
+     * @param destinoId - ID da casa para onde ir
+     * @param passarPeloInicio - Se deve ganhar R$2000 ao passar pelo início
      */
     static teleportarPara(username: string, destinoId: number, passarPeloInicio: boolean = true): void {
         const player = Memory.getPlayerByUsername(username);
@@ -36,14 +54,17 @@ export class EfeitoCarta {
         const posicaoAntiga = player.getPosicao();
         player.posicao = destinoId;
 
-        // Se a nova posição for menor que a antiga (e não for teleporte forçado), ganha bônus
+        // Se teleportar para trás no tabuleiro e autorizado, ganha bônus
         if (passarPeloInicio && destinoId < posicaoAntiga) {
             Banco.pontoPartida(username);
         }
     }
 
     /**
-     * 4. Movimentação relativa (Avance 3 casas, Recue 2 casas)
+     * Move o jogador um número relativo de casas
+     * Exemplo: "Avance 3 casas", "Recue 2 casas"
+     * @param username - Nome do jogador
+     * @param passos - Número de casas (positivo avança, negativo recua)
      */
     static moverPassos(username: string, passos: number): void {
         const player = Memory.getPlayerByUsername(username);
@@ -51,21 +72,27 @@ export class EfeitoCarta {
     }
 
     /**
-     * 5. Prisão (Vá para a cadeia)
+     * Envia o jogador para a cadeia
+     * @param username - Nome do jogador
+     * @returns Mensagem descritiva
      */
     static enviarPrisao(username: string): string {
         return Banco.prenderJogador(username);
     }
 
     /**
-     * 6. Taxa por Patrimônio (Reparos em todos os prédios)
-     * Baseado nas cartas de "Cupins" ou "Tempestade"
+     * Cobra uma taxa por cada construção que o jogador possui
+     * Exemplo: "Reparos em todos os edifícios - pague R$40 por casa"
+     * @param username - Nome do jogador
+     * @param valorPorCasa - Valor a descontar por cada nível de construção
+     * @returns Total da multa cobrada
      */
     static taxaPorConstrucao(username: string, valorPorCasa: number): number {
         const player = Memory.getPlayerByUsername(username);
         if (!player) return 0;
 
         let totalMulta = 0;
+        // Calcula a multa total sobre todas as construções
         player.getPropriedadesId().forEach(id => {
             const prop = Memory.getPropriedadeById(id);
             if (prop && prop.level > 0) {
@@ -73,12 +100,16 @@ export class EfeitoCarta {
             }
         });
 
+        // Deduz do saldo do jogador
         player.deduzirSaldo(totalMulta);
         return totalMulta;
     }
 
     /**
-     * 7. Troca de Posição (Troque de lugar com o coadjuvante)
+     * Troca a posição de dois jogadores no tabuleiro
+     * Exemplo: "Troque de lugar com outro jogador"
+     * @param userA - Username do primeiro jogador
+     * @param userB - Username do segundo jogador
      */
     static trocarLugares(userA: string, userB: string): void {
         const playerA = Memory.getPlayerByUsername(userA);
@@ -91,23 +122,28 @@ export class EfeitoCarta {
     }
 
     /**
-     * 8. Isenção de Aluguel (Próxima vez que cair em alguém, não paga)
-     * Nota: Exige flag no Player.ts para ser consumida no SocketAdmin.
+     * Concede isenção de aluguel para a próxima vez que cair em propriedade de outro
+     * Nota: Requer implementação de flag adicional no Player
+     * @param username - Nome do jogador que recebe isenção
      */
     static concederIsencao(username: string): void {
-        // Lógica para setar flag 'isentoProximoAluguel = true' no objeto Player
+        // TODO: Implementar flag 'isentoProximoAluguel' no Player.ts
         console.log(`${username} ganhou isenção de aluguel.`);
     }
 
     /**
-     * 9. Jogar Novamente (Bônus de movimento)
+     * Concede ao jogador um turno extra para jogar os dados novamente
+     * @param socket - Objeto WebSocket do jogador
      */
     static turnoExtra(socket: any): void {
         socket.emit("yourTurn", { hasRolled: false });
     }
 
     /**
-     * 10. Coleta Geral (Aniversário: todos pagam ao jogador)
+     * Coleta um valor de todos os outros jogadores e repassa ao destinatário
+     * Exemplo: "Aniversário - todos pagam R$50 para você"
+     * @param recebedor - Username do jogador que recebe
+     * @param valorCada - Valor a receber de cada jogador
      */
     static coletaGeral(recebedor: string, valorCada: number): void {
         const todos = Memory.getAllPlayerUsernameByArray();
@@ -119,15 +155,21 @@ export class EfeitoCarta {
     }
 
     /**
-     * 11. Penalidade de Turno (Perca a vez)
+     * Penaliza o jogador fazendo-o perder turnos
+     * Nota: Requer implementação de contador no Player
+     * @param username - Nome do jogador
+     * @param turnos - Número de turnos a perder
      */
     static penalizarTurno(username: string, turnos: number): void {
-        // Implementar contador de turnos perdidos no Player.ts
+        // TODO: Implementar contador de turnos perdidos no Player.ts
         console.log(`${username} perderá ${turnos} turno(s).`);
     }
 
     /**
-     * 12. Roubar Propriedade/Aluguel
+     * Rouba uma propriedade de outro jogador
+     * Nota: Efeito raro, pode quebrar o equilíbrio do jogo
+     * @param propriedadeId - ID da propriedade a roubar
+     * @param novoDono - Username do novo proprietário
      */
     static roubarPropriedade(propriedadeId: number, novoDono: string): void {
         const prop = Memory.getPropriedadeById(propriedadeId);

@@ -1,5 +1,32 @@
+/**
+ * JornalData - Base de dados de manchetes para o jornal do jogo
+ * Contém templates de notícias para diferentes categorias de jogadores
+ * Cada categoria tem múltiplas manchetes que são sorteadas aleatoriamente
+ * 
+ * Variáveis disponíveis nos templates:
+ * - ${nome}: Nome do jogador protagonista
+ * - ${saldo}: Saldo financeiro do jogador
+ * 
+ * Categorias disponíveis:
+ * - RICO: Jogador com muito dinheiro (>3000)
+ * - POBRE: Jogador com pouco dinheiro (<200)
+ * - PRESIDIARIO: Jogador na cadeia
+ * - CONSTRUTOR: Jogador com muitas casas/hotéis
+ * - MONOPOLISTA: Jogador com monopólio em uma cor
+ * - COLECIONADOR: Jogador com muitas propriedades diversas
+ * - BARAO_AEREO: Jogador com múltiplos aeroportos/estações
+ * - ELITE: Jogador com propriedades caras
+ * - REI_DA_SUCATA: Jogador com propriedades baratas
+ * - ESPECULADOR: Jogador com dinheiro mas poucas propriedades
+ * - ALAVANCADO: Jogador com muitos imóveis mas pouco dinheiro
+ * - SEM_TETO: Jogador sem propriedades enquanto outros dominam
+ * - SORTUDO: Jogador que tirou sorte
+ * - TURISTA: Jogador visitando zona neutra
+ * - NORMAL: Manchete padrão
+ */
 export const MANCHETES = {
-  // 1. O RICO (Cash King)
+  // ==================== JOGADOR RICO ====================
+  // Manchetes para jogadores com saldo acima de 3000
   RICO: [
     { titulo: "CAPA DA FORBES", corpo: "${nome} foi eleito a personalidade do ano. 'O segredo é acordar cedo e herdar terrenos', diz o magnata que acumula R$ ${saldo}." },
     { titulo: "PISCINA DE DINHEIRO", corpo: "Vizinhos relatam que ${nome} mandou instalar um trampolim no cofre forte para mergulhar em suas moedas de ouro." },

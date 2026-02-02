@@ -6,28 +6,54 @@ import { PropriedadeTaxa } from "./PropriedadeTaxa";
 import { PropriedadeEstacao } from "./PropriedadeEstacao";
 import { PropriedadeNula } from "./PropriedadeNula";
 
+/**
+ * Classe Memory - Gerenciador central de estado do jogo
+ * Mantém registro de todos os jogadores, propriedades e suas relações
+ * Armazena dados em memória RAM para acesso rápido durante o jogo
+ */
 export class Memory {
   static isPropertyInitialized: boolean = false;
 
   // Mapa principal: Username -> Objeto Player
+  // Permite buscar dados do jogador pelo seu nome de usuário
   static players: Map<string, Player> = new Map();
 
-  // Mapa reverso: SocketID -> Username (usado para encontrar quem mandou a mensagem)
+  // Mapa reverso: SocketID -> Username
+  // Permite identificar qual jogador enviou uma mensagem via WebSocket
   static playerBySocketId: Map<string, string> = new Map();
 
+  // Mapa de propriedades: ID -> Objeto Propriedade
+  // Todas as propriedades do tabuleiro com seus dados
   static propriedades: Map<number, Propriedade> = new Map();
 
+  /**
+   * Busca um jogador pelo seu ID de conexão WebSocket
+   * @param socketId - ID da conexão
+   * @returns Objeto Player ou null se não encontrado
+   */
   static getUsernameBySocketId(socketId: string): Player | null {
     const username = this.playerBySocketId.get(socketId);
     const player = username ? this.players.get(username) : null;
     return player || null;
   }
 
+  /**
+   * Busca o ID de conexão de um jogador pelo nome de usuário
+   * @param username - Nome do jogador
+   * @returns ID do socket ou null
+   */
   static getSocketIdByUsername(username: string): string | null {
     const player = this.players.get(username);
     return player ? player.socketId : null;
   }
 
+  /**
+   * Registra um novo jogador no jogo
+   * Cria entrada tanto no mapa principal quanto no mapa reverso
+   * @param socketId - ID da conexão WebSocket
+   * @param username - Nome do jogador
+   * @returns true se registrado com sucesso, false se usuário já existe
+   */
   static registerPlayer(socketId: string, username: string): boolean {
     if (!this.players.has(username)) {
       const newPlayer = new Player(this.players.size + 1, username, socketId);
@@ -38,46 +64,47 @@ export class Memory {
     return false;
   }
 
-  // --- IMPLEMENTAÇÃO 1: Define o clima aleatório para todas as propriedades ---
+  /**
+   * Atualiza o estado climático de todas as propriedades
+   * Decrementa duração de eventos ativos, gera novos eventos e aplica clima
+   * Afeta o multiplicador de aluguel das propriedades
+   */
   static randomizeWeather() {
     this.propriedades.forEach((prop: Propriedade) => {
-      // 1. Decrementa duração de eventos anteriores
+      // 1. Decrementa a duração de eventos anteriores
       prop.decreaseEventDuration();
 
       // 2. Tenta gerar novos eventos (Obra, Carnaval, etc)
-      // Se gerar, ele define multiplier e alertMessage aqui
+      // Se um evento for gerado, ele define automaticamente o multiplicador
       prop.generateRandomEvent();
 
-      // 3. Aplica o Clima
+      // 3. Aplica o clima da propriedade (apenas se método existir)
       if ("randomWeather" in prop && typeof prop.randomWeather === "function") {
-        prop.randomWeather(); // Sorteia o clima (stormy, rainy, clear)
+        prop.randomWeather(); // Sorteia aleatoriamente: stormy, rainy ou clear
 
-        // --- CORREÇÃO AQUI ---
-        // Só entramos na lógica de resetar/alterar baseada em clima SE FOR ESTAÇÃO.
+        // Clima afeta principalmente ESTAÇÕES
         if (prop.getColor() === "Estacao") {
           if (prop.getWeather() === "stormy") {
-            // Tempestade: Penaliza a Estação
+            // Tempestade penaliza: voos cancelados, poucos viajantes
             prop.setRentMultiplier(0.8);
-            // prop.updateRent();
             prop.setAlertMessage("Voos cancelados! -20%(aluguel)");
           }
-          // Se for (Clear OU Rainy), reseta para o normal
+          // Se céu limpo ou chuva leve, volta ao normal (se não há evento ativo)
           else if (
             prop.getWeather() === "clear" ||
             prop.getWeather() === "rainy"
           ) {
-            // CUIDADO: Só reseta se NÃO tiver um evento ativo (gerado no passo 2)
-            // Se tiver evento (duration > 0), o evento manda no multiplier, não o clima.
+            // Só reseta se NÃO tiver um evento de prefeitura/festa/etc
             if (prop.eventDuration === 0) {
               prop.setRentMultiplier(1);
-              // prop.updateRent();
               prop.setAlertMessage("");
             }
           }
         }
-        // Se NÃO for estação, o clima não faz nada, preservando o evento gerado no passo 2.
+        // Propriedades normais não são afetadas por clima, apenas por eventos
       }
 
+      // Log de eventos ativos para debug
       if (prop.eventDuration > 0) {
         console.log(
           `Propriedade ${prop.getName()} (${prop.getId()}) está com evento ativo: ${prop.alertMessage}`,
@@ -86,7 +113,11 @@ export class Memory {
     });
   }
 
-  // --- IMPLEMENTAÇÃO 2: Define o dia/noite para todas as propriedades ---
+  /**
+   * Define o período do dia (dia ou noite) para todas as propriedades
+   * Pode ser usado para criar dinâmica horária no jogo
+   * @param hour - "dia" ou "noite"
+   */
   static setGlobalHour(hour: "dia" | "noite") {
     this.propriedades.forEach((prop) => {
       // Verifica se o método existe antes de chamar
@@ -96,37 +127,69 @@ export class Memory {
     });
   }
 
+  /**
+   * Busca um jogador pelo nome de usuário
+   * @param username - Nome do jogador
+   * @returns Objeto Player ou null
+   */
   static getPlayerByUsername(username: string): Player | null {
     return this.players.get(username) || null;
   }
 
+  /**
+   * Busca uma propriedade pelo seu ID
+   * @param id - ID da propriedade
+   * @returns Objeto Propriedade ou null
+   */
   static getPropriedadeById(id: number): Propriedade | null {
     return this.propriedades.get(id) || null;
   }
 
+  /**
+   * Retorna todas as propriedades como um array
+   * @returns Array com todas as propriedades
+   */
   static getAllPropertiesByArray(): Propriedade[] {
     return Array.from(this.propriedades.values());
   }
 
+  /**
+   * Retorna os nomes de todos os jogadores ativos
+   * @returns Array com usernames dos jogadores
+   */
   static getAllPlayerUsernameByArray(): string[] {
     return Array.from(this.players.keys());
   }
 
+  /**
+   * Atualiza o ID de conexão de um jogador
+   * Útil quando um jogador se reconecta com um novo socket
+   * @param username - Nome do jogador
+   * @param newSocketId - Novo ID de conexão
+   */
   public static updateSocketId(username: string, newSocketId: string) {
     const player = this.players.get(username);
 
     if (player) {
       const oldSocketId = player.socketId;
 
+      // Remove a entrada antiga do mapa reverso
       if (oldSocketId && this.playerBySocketId.has(oldSocketId)) {
         this.playerBySocketId.delete(oldSocketId);
       }
 
+      // Atualiza para o novo socket
       player.socketId = newSocketId;
       this.playerBySocketId.set(newSocketId, username);
     }
   }
 
+  /**
+   * Inicializa todas as propriedades do tabuleiro
+   * Criação de 40 propriedades em 8 grupos temáticos
+   * Inclui: terrenos, estações, companhias, taxas e cartas de sorte
+   * Executa apenas uma vez por sessão de jogo
+   */
   static initializeProperties(): void {
     if (this.isPropertyInitialized) {
       return;
@@ -134,7 +197,7 @@ export class Memory {
 
     let i = 0;
 
-    // --- GRUPO 1 ---
+    // ==================== GRUPO 1 - MARROM ====================
     Memory.propriedades.set(
       i++,
       new PropriedadeNula(i, "Ponto de Partida", "Comeco", "#008000"),
@@ -160,7 +223,7 @@ export class Memory {
       new PropriedadeSorte(i, "Via De Pedestres", "Sorte"),
     );
 
-    // --- GRUPO 2 ---
+    // ==================== GRUPO 2 - AZUL CLARO ====================
     Memory.propriedades.set(
       i++,
       new Propriedade(
@@ -200,13 +263,13 @@ export class Memory {
         80,
         1200,
       ),
-    ); // ID 9
+    );
     Memory.propriedades.set(
       i++,
       new PropriedadeNula(i, "Prisão (Visitante)", "Visitante", "#ffc067"),
-    ); // ID 10
+    );
 
-    // --- GRUPO 3 ---
+    // ==================== GRUPO 3 - ROSA ====================
     Memory.propriedades.set(
       i++,
       new Propriedade(
@@ -227,7 +290,6 @@ export class Memory {
       i++,
       new Propriedade(i, "Niterói", "#FF69B4", "Rosa", 1000, 100, 1400),
     );
-    // CORREÇÃO: Renomeado de "Av. Paulista" para "Av. Brasil" para evitar conflito de nomes
     Memory.propriedades.set(
       i++,
       new Propriedade(i, "Av. Atlântica", "#FF69B4", "Rosa", 1000, 120, 1600),
@@ -237,7 +299,7 @@ export class Memory {
       new PropriedadeSorte(i, "Via De Bicicletas", "Sorte"),
     );
 
-    // --- GRUPO 4 ---
+    // ==================== GRUPO 4 - LARANJA ====================
     Memory.propriedades.set(
       i++,
       new Propriedade(
@@ -285,7 +347,7 @@ export class Memory {
       ),
     );
 
-    // --- GRUPO 5 ---
+    // ==================== GRUPO 5 - VERMELHO ====================
     Memory.propriedades.set(
       i++,
       new Propriedade(i, "Ipanema", "#FF0000", "Vermelho", 1500, 180, 2200),
@@ -307,7 +369,7 @@ export class Memory {
       new PropriedadeSorte(i, "Via De Automóveis", "Sorte"),
     );
 
-    // --- GRUPO 6 ---
+    // ==================== GRUPO 6 - AMARELO ====================
     Memory.propriedades.set(
       i++,
       new Propriedade(
@@ -337,7 +399,7 @@ export class Memory {
       new PropriedadeNula(i, "Vá para a Cadeia", "Prisao", "#111184"),
     );
 
-    // --- GRUPO 7 ---
+    // ==================== GRUPO 7 - VERDE ====================
     Memory.propriedades.set(
       i++,
       new Propriedade(
@@ -383,7 +445,7 @@ export class Memory {
       new PropriedadeSorte(i, "Via Espacial", "Sorte"),
     );
 
-    // --- GRUPO 8 ---
+    // ==================== GRUPO 8 - AZUL ESCURO ====================
     Memory.propriedades.set(
       i++,
       new PropriedadeCompanhia(i, "Companhia Elétrica"),
@@ -409,8 +471,7 @@ export class Memory {
       ),
     );
 
-    // --- PASSO CRÍTICO: GARANTIA DE INTEGRIDADE ---
-    // Injeta o ID correto em cada objeto baseado na chave do Map
+    // Garantia de integridade: injeta o ID correto em cada propriedade
     Memory.propriedades.forEach((prop, keyId) => {
       prop.id = keyId;
     });
