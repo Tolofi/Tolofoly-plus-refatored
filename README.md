@@ -42,31 +42,39 @@ Como o projeto é híbrido, você precisará rodar o "cérebro" (Server) e o "co
 ### Pré-requisitos
 * **Node.js** (v18+ recomendado)
 * **npm** ou **yarn**
-* Um celular conectado na mesma rede Wi-Fi do computador (para testar o controle)
+* Um celular conectado na mesma rede Wi-Fi do computador (para testar o controle) ou um navegador.
 
 ## Passo 1: O Servidor (API + Socket)
 O servidor gerencia o estado da partida e a sincronização.
 
 ### Clone o repositório
+<pre>
 git clone [https://github.com/Tolofi/Tolofoly-plus-refatored.git](https://github.com/Tolofi/Tolofoly-plus-refatored.git)
+</pre>
 
 ### Entre na pasta do servidor
 cd tolofoly-plus-refatored/server
 
 ### Instale as dependências e rode
+<pre>
 npm install
 npm run dev
+</pre>  
 # O terminal deve confirmar: "Server running on port 3000"
 
 ## Passo 2: O Cliente (TV + Mobile)
 A interface visual que renderiza o tabuleiro e o controle.
 
 ### Abra um NOVO terminal e entre na pasta do cliente
+<pre>
 cd Cliente/my-app
+</pre>
 
 ### Instale as dependências e rode
+<pre>
 npm install
 npm run dev
+</pre>
 ### Acesse o link local (ex: http://localhost:5173)
 
 ### Passo 3: Jogando
@@ -76,8 +84,7 @@ Na tela inicial, clique em "**Colocar IP**". Se você for a primeira pessoa a se
 
 ### Dica: Se o QR Code não conectar, certifique-se de que o firewall do Windows/Linux não está bloqueando a conexão Node.js.
 
-### 2. Seção "Contribuição" e Objetivos Futuros
-*Copie e cole isso quase no final do arquivo, antes dos créditos/autor.*
+# 2. Seção "Contribuição" e Objetivos Futuros
 
 ## Contribuição
 
