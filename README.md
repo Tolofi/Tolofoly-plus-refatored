@@ -53,30 +53,30 @@ git clone [https://github.com/Tolofi/Tolofoly-plus-refatored.git](https://github
 ```
 
 ### Entre na pasta do servidor
-<pre>
+```
 cd tolofoly-plus-refatored/server
-</pre>
+```
 
 ### Instale as dependências e rode
-<pre>
+```
 npm install
 npm run dev
-</pre>  
+```  
 O terminal deve confirmar: "Server running on port 3000"
 
 ## Passo 2: O Cliente (TV + Mobile)
 A interface visual que renderiza o tabuleiro e o controle.
 
 ### Abra um NOVO terminal e entre na pasta do cliente
-<pre>
+```
 cd Cliente/my-app
-</pre>
+```
 
 ### Instale as dependências e rode
-<pre>
+```
 npm install
 npm run dev
-</pre>
+```
 Acesse o link local (ex: http://localhost:5173)
 
 ## Passo 3: Jogando
