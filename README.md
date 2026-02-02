@@ -82,11 +82,19 @@ Acesse o link local (ex: http://localhost:5173)
 ## Passo 3: Jogando
 Abra o link do front-end no seu PC (ele será a TV/Tabuleiro).
 
-Na tela inicial, clique em "**Colocar IP**". Se você for a primeira pessoa a se conectar, você precisará digitar o ip e a porta manualmente. Depois se mais pessoas forem jogar no seu servidor, basta clicar no botão "**compartilhar IP**" e para os outros jogadores clicar em "**Colocar IP**", em seguida "**Escanear QR code**", aceitar as permissões, ler o código e pronto. Se o ip estiver correto, o servidor rodando e você na mesma rede wifi do servidor você deverá estar conectado.
+1.  **Configurando o Host:** Na tela inicial, clique em **"Colocar IP"**.
+    * *Se você for o primeiro:* Digite o IP local da sua máquina e a porta (3000).
+    * *Para convidar:* Clique no botão **"Compartilhar IP"**. Isso vai gerar o QR Code.
+2.  **Conectando os Jogadores:**
+    * No celular, clique em **"Colocar IP"** e depois em **"Escanear QR Code"**.
+    * Aceite a permissão de câmera e leia o código da TV.
+    * Se estiver tudo certo (mesma rede Wi-Fi), você estará conectado.
+3.  **Iniciando:**
+    * Coloque seu nome e clique em **"Jogar"**.
+    * Na tela de espera, clique em **"Ficar pronto"**.
+    * Quando todos estiverem prontos, o jogo inicia.
 
-Ao colocar o seu nome e clicar em jogar você será enviado para a tela de espera e então se você clicar em "**Ficar pronto**" e só tiver você no jogo ele irá iniciar então se for jogar com mais pessoas espere a segunda entrar clicar.
-
-### Dica: Se o QR Code não conectar, certifique-se de que o firewall do Windows/Linux não está bloqueando a conexão Node.js.
+> **Dica de Conexão:** Se o QR Code não conectar, certifique-se de que o Firewall do Windows/Linux não está bloqueando a porta do Node.js.
 
 # 2. Contribuição e Objetivos Futuros
 
