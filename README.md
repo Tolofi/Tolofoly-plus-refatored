@@ -29,7 +29,6 @@ O projeto foi construído utilizando uma stack moderna de JavaScript/TypeScript:
 * ![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB) **React** (Vite)
 * ![JavaScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=javascript&logoColor=white) **JavaScript**
 * ![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=flat&logo=framer&logoColor=white) **Framer Motion** (Animações)
-* **Tailwind CSS** (Estilização)
 
 **Back-end:**
 * ![NodeJS](https://img.shields.io/badge/Node.js-43853D?style=flat&logo=node.js&logoColor=white) **Node.js**
