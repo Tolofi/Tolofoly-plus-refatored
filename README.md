@@ -88,7 +88,7 @@ Ao colocar o seu nome e clicar em jogar você será enviado para a tela de esper
 
 ### Dica: Se o QR Code não conectar, certifique-se de que o firewall do Windows/Linux não está bloqueando a conexão Node.js.
 
-# 2. Seção "Contribuição" e Objetivos Futuros
+# 2. Contribuição e Objetivos Futuros
 
 ## Contribuição
 
