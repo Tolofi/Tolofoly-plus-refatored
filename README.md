@@ -74,7 +74,7 @@ Abra o link do front-end no seu PC (ele será a TV/Tabuleiro).
 
 Na tela inicial, clique em "**Colocar IP**". Se você for a primeira pessoa a se conectar, você precisará digitar o ip e a porta manualmente. Depois se mais pessoas forem jogar no seu servidor, basta clicar no botão "**compartilhar IP**" e para os outros jogadores basta clicar em "**Colocar IP**", em seguida "**Escanear QR code**", aceitar as permissões e pronto. Se o ip estiver correto, o servidor rodando e você na mesma rede wifi do servidor você deverá estar conectado.
 
-# Dica: Se o QR Code não conectar, certifique-se de que o firewall do Windows/Linux não está bloqueando a conexão Node.js.
+### Dica: Se o QR Code não conectar, certifique-se de que o firewall do Windows/Linux não está bloqueando a conexão Node.js.
 
 ### 2. Seção "Contribuição" e Objetivos Futuros
 *Copie e cole isso quase no final do arquivo, antes dos créditos/autor.*
