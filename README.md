@@ -48,9 +48,9 @@ Como o projeto é híbrido, você precisará rodar o "cérebro" (Server) e o "co
 O servidor gerencia o estado da partida e a sincronização.
 
 ### Clone o repositório
-<pre>
+```
 git clone [https://github.com/Tolofi/Tolofoly-plus-refatored.git](https://github.com/Tolofi/Tolofoly-plus-refatored.git)
-</pre>
+```
 
 ### Entre na pasta do servidor
 <pre>
