@@ -1,4 +1,3 @@
-import { Memory } from "./Memory";
 import { GoogleAIService } from "./Mensagem";
 
 /**
