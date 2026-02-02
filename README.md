@@ -87,7 +87,7 @@ Abra o link do front-end no seu PC (ele será a TV/Tabuleiro).
     * *Para convidar:* Clique no botão **"Compartilhar IP"**. Isso vai gerar o QR Code.
 2.  **Conectando os Jogadores:**
     * No celular, clique em **"Colocar IP"** e depois em **"Escanear QR Code"**.
-    * Aceite a permissão de câmera e leia o código da TV.
+    * Aceite a permissão de câmera e leia o código.
     * Se estiver tudo certo (mesma rede Wi-Fi), você estará conectado.
 3.  **Iniciando:**
     * Coloque seu nome e clique em **"Jogar"**.
@@ -119,5 +119,7 @@ Sinta-se à vontade para abrir uma **Issue** relatando problemas com a conexão 
 [ ] Execução dinamica e pré programadas de cartas de sorte e revés.
 
 [ ] Remoção da "Magic Box (a seta que da acesso a ações gerais)" para todos, mantendo apenas para o ADM.
+
+[ ] Implementação do QR code no tabuleiro durente todo o jogo.
 
 ### Desenvolvido por Tolofi.
