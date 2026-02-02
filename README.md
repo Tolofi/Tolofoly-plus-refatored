@@ -60,7 +60,7 @@ cd tolofoly-plus-refatored/server
 ### Instale as dependências e rode
 ```
 npm install
-npm run dev
+npm run start
 ```  
 O terminal deve confirmar: "Server running on port 3000"
 
