@@ -49,7 +49,7 @@ O servidor gerencia o estado da partida e a sincronização.
 
 ### Clone o repositório
 ```
-git clone [https://github.com/Tolofi/Tolofoly-plus-refatored.git](https://github.com/Tolofi/Tolofoly-plus-refatored.git)
+git clone https://github.com/Tolofi/Tolofoly-plus-refatored.git
 ```
 
 ### Entre na pasta do servidor
