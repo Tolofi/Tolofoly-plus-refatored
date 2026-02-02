@@ -44,30 +44,30 @@ Como o projeto é híbrido, você precisará rodar o "cérebro" (Server) e o "co
 * **npm** ou **yarn**
 * Um celular conectado na mesma rede Wi-Fi do computador (para testar o controle)
 
-### Passo 1: O Servidor (API + Socket)
+## Passo 1: O Servidor (API + Socket)
 O servidor gerencia o estado da partida e a sincronização.
 
-## Clone o repositório
+### Clone o repositório
 git clone [https://github.com/Tolofi/Tolofoly-plus-refatored.git](https://github.com/Tolofi/Tolofoly-plus-refatored.git)
 
-## Entre na pasta do servidor
+### Entre na pasta do servidor
 cd tolofoly-plus-refatored/server
 
-## Instale as dependências e rode
+### Instale as dependências e rode
 npm install
 npm run dev
 # O terminal deve confirmar: "Server running on port 3000"
 
-### Passo 2: O Cliente (TV + Mobile)
+## Passo 2: O Cliente (TV + Mobile)
 A interface visual que renderiza o tabuleiro e o controle.
 
-## Abra um NOVO terminal e entre na pasta do cliente
+### Abra um NOVO terminal e entre na pasta do cliente
 cd Cliente/my-app
 
-## Instale as dependências e rode
+### Instale as dependências e rode
 npm install
 npm run dev
-## Acesse o link local (ex: http://localhost:5173)
+### Acesse o link local (ex: http://localhost:5173)
 
 ### Passo 3: Jogando
 Abra o link do front-end no seu PC (ele será a TV/Tabuleiro).
