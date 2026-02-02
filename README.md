@@ -1,3 +1,9 @@
+<div align="right">
+  <a href="README.en.md">
+    <img src="https://img.shields.io/badge/Read_in_English-USA?style=for-the-badge&logo=us&logoColor=white">
+  </a>
+</div>
+
 # 1. Tolofoly (Inspirado em jogos de tabuleiro de comércio imobiliário)
 
 > Uma recriação moderna e interativa do clássico jogo de tabuleiro, projetada para ser jogada com uma tela central (TV) e dispositivos móveis como controles.
