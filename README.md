@@ -35,7 +35,7 @@ O projeto foi construído utilizando uma stack moderna de JavaScript/TypeScript:
 * ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white) **TypeScript**
 * ![Socket.io](https://img.shields.io/badge/Socket.io-black?style=flat&logo=socket.io&badgeColor=010101) **Socket.io** (Comunicação em tempo real)
 
-* ## Como Rodar o Tolofoly Localmente
+## Como Rodar o Tolofoly Localmente
 
 Como o projeto é híbrido, você precisará rodar o "cérebro" (Server) e o "corpo" (Client) em terminais separados.
 
